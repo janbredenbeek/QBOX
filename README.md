@@ -65,10 +65,12 @@ If you still want to run a publicly available BBS, consider using SSH (Secure Sh
 
 2. Next, edit the /etc/ssh/sshd_config file and include the following lines:
 
-   Match User qbox
-        DisableForwarding yes
-        PermitTTY yes
-        ForceCommand telnet -E -8 localhost 5000
+```
+        Match User qbox
+          DisableForwarding yes
+          PermitTTY yes
+          ForceCommand telnet -E -8 localhost 5000
+```
 
 This locks down the user qbox so after the SSH login it forces execution of the telnet command to connect to the BBS running on the same machine on port 5000. Of course, if your BBS is running on a different port or even a different machine, you should replace 'localhost 5000' to suit. The -E switch avoids the user being able to use the Telnet escape character to escape into Telnet command mode.
 

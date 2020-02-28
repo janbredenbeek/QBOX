@@ -44,15 +44,16 @@ Although QSPILTCP comes pre-configured with options which I believe are reasonab
 
 The options which are configurable are:
 
-Offset  Type    Property
-------  ----    --------
-72      word    Check value, should be 301 decimal
-84      word    TCP port to listen on (default 5000)
-86      long    IP address to listen on (default 0.0.0.0 for 'all')
-98      byte    Data transfer protocol to use: 0 raw TCP, 1 Telnet, -1 adaptive (default)
-100     string  Telnet commands to send on connect, only used when above byte is nonzero. Length word followed by max. 30 bytes
-132     string  Name of TCP device (length word followed by max. 30 bytes). Default 'TCP_'
-164     string  Name of SCK device (length word followed by max. 30 bytes). Default 'SCK_'
+
+| Offset | Type | Property                                                                  |
+|:------:| ---- |:------------------------------------------------------------------------- |
+|   72   | word | Check value, should be 301 decimal                                        |
+|   84   | word | TCP port to listen on (default 5000)                                      |
+|   86   | long | IP address to listen on (default 0.0.0.0 for 'all')                       |
+|   98   | byte | Data transfer protocol to use: 0 raw TCP, 1 Telnet, -1 adaptive (default) |
+|  100   |string| Telnet commands to send on connect, only used when above byte is nonzero. Length word followed by max. 30 bytes|
+|  132   |string| Name of TCP device (length word followed by max. 30 bytes). Default 'TCP_'|
+|  164   |string| Name of SCK device (length word followed by max. 30 bytes). Default 'SCK_'|
 
 ## Securing your system
 

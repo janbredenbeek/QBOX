@@ -1,0 +1,108 @@
+                  "QCON" DEVICE for TANDATA QCONNECT
+                  ----------------------------------
+
+
+Copyright (C) 1990 by Jan Bredenbeek, Hilversum, Holland. Use and distribution
+is granted only for non-commercial environments. The author assumes no 
+liability of any kind regarding the fitness of the QCON device driver for
+any particular purpose.
+
+
+Introduction
+------------
+
+The QCON Device Driver allows you to connect a standard RS-232 modem to the QL
+without the problems usually involved with the built-in serial ports, using the
+Tandata Qconnect module. Problems that will be cured with the Qconnect module
+are:
+
+- No more data corruption at lower port speeds
+- No more overrun errors causing the QL's port to "lag behind"
+- Split speed (1200/75 and 75/1200 bps) available
+- Carrier monitoring available (useful when running a BBS)
+- DTR drops low when closing a channel, disconnecting the modem properly
+
+The QCON driver provides a unique solution by providing total data
+transparency. This means that the application software does not have to treat
+Qconnect control codes in a special way. So you may use any terminal program
+you like, even if it is not written for the Qconnect module, as long as it is
+possible to redirect the serial channel to QCON. The main goal of QCON however
+was to provide compatibility with the QSPHAYES modem driver for the QBOX BBS
+program.
+
+NOTE: The QCON driver is NOT meant to be used in conjunction with the QMOD and
+QCALL devices from Tandata. It is only meant as an aid to allow decent modems
+to be used decently on the QL.
+
+
+Installation
+------------
+
+You should connect your modem to the 25-way D-socket on the Qconnect module,
+and the 6-way BICC connector from the Qconnect module to the SER2 port. Also
+you need to connect the lead from the QL's power supply to the socket on the
+Qconnect module marked "POWER", and connect the power lead from the Qconnect
+module to the QL.
+
+In your BOOT file, you should place a command "LRESPR <device>QCON_REXT". This
+will load and initialise the QCON driver.
+
+To open a channel to the QCON device, use the device name
+
+         QCON_bpc
+
+where "b" is the baudrate required (300, 1200, 1275, 7512, 2400, 4800 or 9600)
+      "p" the parity (default none or [O]dd, [E]ven, [M]ark or [S]pace)
+and   "c" carrier watchdog (default=no or C for "yes")
+
+Note that a baudrate of 1275 means that Qconnect will receive at 1200 bps and
+send at 75 bps, 7512 means exactly the opposite. Although QCON allows a
+baudrate of 9600 to be set, the Qconnect documentation does not guarantee
+proper communication at this speed.
+
+When Odd, Even, Mark or Space parity is used, the high (7th) bit of incoming
+data bytes is stripped without verification.
+
+When Carrier Watchdog is specified and the DCD line on the Qconnect port drops
+to "low" after being "high", subsequent calls to fetch input bytes from the
+QCON channel will return an "end of file" error code. Also, calls to send bytes
+through the QCON channel will return without actually sending data. This
+convention is used by QBOX to recover from a premature loss of carrier.
+
+The "extended" serial port I/O traps (FS.FLUSH, IO.DUMP, IO.PARIT and IO.BAUD)
+are supported by the QCON driver. For an explanation of these traps, please
+refer to the QSPHAYES documentation.
+
+To make the IO.BAUD trap accessible from within SuperBASIC, the QCON driver
+incorporates a replacement BAUD command. The syntax is as follows:
+
+         BAUD [#channel],baudrate
+
+If a channel is specified (which must have been opened to a suitable device)
+the new baudrate will be set for the channel by means of an IO.BAUD call.
+Otherwise, the usual MT.BAUD trap is called for compatibility. Note that in
+both cases the baudrate is passed on as a 32-bit integer rather than a 16-bit
+one (as the built-in BAUD command does). This allows future drivers to have the
+baudrate set to a greater value than 32767 (if the hardware can handle it!).
+
+NOTES:
+
+1. When specifying a baudrate as a parameter to the QCON device name, the
+Qconnect module will be initialised. If the baudrate parameter is omitted, no
+initialisation command will be sent. The baudrate may however be set with the
+IO.BAUD trap or the extended BAUD command, which also sends an INITIALISE
+command (which also causes RTS and DTR on the Qconnect to be raised).
+
+2. You MUST ensure that the QL's own baud rate is set at 9600. This will be
+done automatically when the QCON device is loaded.
+
+
+Using the QCON device with QBOX
+-------------------------------
+
+When using a Hayes-compatible modem, I strongly recommend you to use QSPHAYES 
+version 0.99d or later as QSPIL driver. In the configuration program, you 
+should specify "QCONC" as the port name. Other parameters should be set 
+according to your modem's needs.
+
+                           --- END OF FILE ---

@@ -1,0 +1,445 @@
+                       QBOX v1.19beta Revision History
+                       -------------------------------
+
+v1.19n   ?? ??? 1994
+--------------------
+
+- I've done great injustice to Lester Wareham's LFAX by saying that
+  QFAX was the only fax program that could be run in conjunction with 
+  QBOX. In fact, LFAX had this capability already from it's very first
+  release (the commandline -p option)!
+  So, here's an example fax program spec for LFAX:
+
+  flp1_LFAX %< %>>log %> -p
+  
+
+v1.19m   21 Oct 1994
+--------------------
+
+- When the user disconnected the line during the initial "Press <ESC>
+  for BBS" message, QBOX failed to close the serial channel. Subsequent
+  attempts to open it failed because it was still open, and QBOX went
+  into an endless loop... Although this bug could be circumvented in
+  QSPHAYES, it is fixed now.
+
+- Fixed a long-standing bug in the online message editor. When the user
+  entered an invalid line number in response to the editor's Delete Line 
+  command, QBOX would crash... (Reported by Tiago Freitas Leal).
+
+- When a mailsession is aborted and resumed later, already sent files 
+  are now not re-sent. They are "commented out" in the _ATT files by
+  replacing the first character of the filename with ";".
+
+- QBOX occasionally produced garbage REPLY-kludges. Also, when a
+  message was updated, the REPLY-kludge was incorrect or lost. Fixed.
+
+- When entering netmail or answering a mail session, QBOX now
+  auto-selects its own address by matching up the remote's zone in the
+  AKA list defined in QSETUP. If this zone cannot be found, QBOX uses
+  its main address.
+
+- It is now possible to set the buffer size used by the SEAlink 
+  receiver. Previous versions automatically decided whether to use no
+  buffer (when receiving was on RAM?_), a 32K buffer (when receiving on
+  WIN?_) or an 8K buffer (when receiving on anything else). Now, you
+  can configure this using QSETUP.
+  The value you should choose depends much on your hardware equipment.
+  It's best to experiment. If you have Hermes and you receive your
+  files always on RAMdisk or a hard disk, you can safely try the "None"
+  option as these are fast storage devices and serial overruns are not
+  much likely to occur (and if they occur, they are quite harmless...).
+  If you have Hermes, the "None" option may even be OK when using
+  floppy's, although it will probably not be reliable when there is no
+  flow control between modems (non-MNP or V42 connect) and throughput
+  may degrade at higher speeds.
+  When the "8K" or "32K" option has been selected, a buffer of the
+  corresponding size is used to receive incoming files. When the buffer
+  has been filled, the remote is told to temporarily stop the transfer
+  (using the SEAlink MACFLOW feature) and QBOX writes out the contents 
+  of the buffer to disk. This will degrade troughput, but is safer when 
+  using floppydisks which tend to disable interrupts for quite a long
+  interval when data is being written, which may upset serial I/O.
+  You should try the 32K option first. If you experience problems when
+  receiving (other end times out when QBOX flushes its buffer) then try
+  the 8K option.
+
+- SEAlink Overdrive (ACKless) is now configurable in QSETUP for both
+  receive and send. When Overdrive is being used, the sender doesn't
+  have to wait for acknowledging blocks altogether (except of course
+  for the end-of-file). Note that this scheme is only enabled on
+  error-free (MNP/V42) connects, and automatically negotiated between
+  both ends.
+  In general, SLO can give better file-transfer performance when using
+  high-speed error-correcting modems since it doesn't have to wait for
+  ACKs. Problems can occur though when slow, interrupt-consuming
+  floppydisks are used for storage on the receiving end. In theory,
+  this wouldn't be a problem when using Hermes and proper modem
+  handshake, but some people have experienced problems even with
+  Hermes. It is best to experiment, and if you do have problems when
+  receiving using SLO there isn't much else you can do than to turn it
+  off unfortunately.
+  
+- QSETUP now has a "Modem" menu. This effectively does the same as the
+  "QSPSETUP" program supplied with the latest gamma versions of
+  QSPHAYES, i.e. it allows you to configure the modem and serial port's
+  parameters. A copy of QSPHAYES v1.00 gamma 3 is included within this
+  archive.
+
+- QBOX no longer has an inbuilt terminal emulator for local logons or
+  chat mode. Instead, it calls an external terminal emulator program,
+  the name of which is specified in the QSETUP Filenames menu.
+  QBOX communicates with the terminal emulator program via two pipes,
+  one for each direction. Thus, the terminal program must also be able
+  to use pipes for its in- and output channels. To my knowledge, the
+  only terminal emulator program which currently supports this is
+  QLTerm. A copy of QLTerm v2.33 is included within the QBOX
+  distribution archive. Be sure to set the filename of the terminal
+  program correctly in the QSETUP Filenames menu!
+  When you want to leave QLTerm out of local- or chat mode, press F3
+  followed by Q.
+
+- It is now possible to add command line parameters to the external
+  message editor. Due to this change, the editor's filename is stored
+  somewhat differently, so you have to re-enter it in the QSETUP
+  Filenames menu. If you want to add any parameters, specify them after
+  the program name, separated by a space. The macro '%W' inserts the
+  name of the editor workfile (e.g. flp1_QED %W).
+
+- QBOX now has the ability to execute a program, or a number of
+  programs, after receipt of incoming mail or files using the "Mail
+  processing" option in the QSETUP Mailer menu. It is now also possible
+  to execute one or more programs after a user has logged off (see the
+  Filenames menu in QSETUP). For more information on executing external
+  programs, see the README_NOW file.
+
+- And last but not least: QBOX now has FAX support! In the QSETUP
+  Filenames menu, you can specify the name of a program to be executed
+  when QBOX has got a FAX connect from your modem. NOTE: As of yet, I
+  haven't been able to test this as I still only have one fax-capable
+  modem (a ZyXEL U-1496E+). I have ordered a USR V.34 faxmodem so I
+  will be able to test it in the near future. In the meantime, any
+  comments and bug-reports on this feature are welcome.
+  In order to be able to receive fax calls front-ended by QBOX, the
+  external fax program must have a provision for the serial channel to
+  be passed on from QBOX as a QDOS "stack channel". Both Jonathan
+  Hudson's QFAX and Lester Wareham's LFAX have this capability (QFAX
+  only from version 2.0 onwards).
+  Two examples for the FAX program specification in QSETUP:
+
+  flp1_QFAX %< %>>log %> -v -x -G
+  flp1_LFAX %< %>>log %> -p
+
+  (For more information on the "%" macros, refer to the "External
+  Programs" section in the README_NOW file).
+  In this example, the fax program will use the QBOX logfile for 
+  logging messages. If you want it to send its messages to a separate 
+  logfile, just replace "log" with the name of the logfile you desire 
+  (note that you have to specify full QDOS filenames as default 
+  directories are currently not recognised).
+  One final note: If you encounter problems receiving fax calls, try
+  executing the fax program from a RAMdisk.
+  
+  
+v1.19l   12 Nov 1993
+--------------------
+
+- Fixed the SEAlink code again to work with QEM...
+
+- The "Time left" value in the [S]tatistics menu never counted down to
+  zero during the session. Fixed now.
+
+
+v1.19k   08 Nov 1993
+--------------------
+
+- When QBOX was started up in Local mode (-L commandline option or defined
+  in QSETUP), SuperBasic could get corrupted. Fixed.
+
+- Yell mode was always off at startup regardless of the setting in QSETUP.
+  Fixed now.
+
+- The Change user settings menu now has an extra option [U]serlist (Cosysop
+  level and higher). This is useful for a name search when you are not sure
+  about the exact spelling; you can then lookup the possible names first from
+  the userlist.
+
+- Changed the way in which the time left for today is kept for each user.
+  The byte at offset 99 in the USERS_BBS record is no longer used for storing
+  the minutes left. Instead, the 2-byte word at location 80 is used for the
+  number of minutes USED today. This eliminates the problem that the user's
+  daily time limit doesn't get updated in the event of a security level change
+  until the next day, and time limits higher than 255 minutes are now possible.
+  There is one little drawback of this change: when you switch versions, all
+  users will get their maximum time back for today!
+
+- Extra menu option [S]tatistics in the MAIN, MAIL and FILES menu. This
+  displays various useful time statistics to the user. The [S]can option in the
+  MAIL menu has been renamed to [Y]our mail.
+
+- It is now possible to alter the user's time left directly from the sysop's 
+  panel. The left and right arrow-keys decrease and increase the time by 1 
+  minute respectively; the down and up arrow keys decrease and increase it by 
+  5 minutes respectively. This will only affect the user's time left for the
+  current session, not the daily time limit.
+
+- The security level of the user currently online can now be set from the
+  sysop's panel. The change made will be permanent; the user's time limit will
+  also be adjusted immediately.
+
+- SEAlink now pads the last (incomplete) block with CTRL-Z's once again.
+
+- Fixed a problem occurring when downloading with QEM using SEAlink. When the
+  last file had been sent, QBOX sent an EOT character to signal the end of the
+  batch transfer. QBOX didn't wait for acknowledgement of this EOT since this
+  is not required in the FTS-0007 mail session protocol. However, QEM's SEAlink
+  (which is based on the original SEAlink code from System Enhancement's
+  Associates) responds to this EOT with a NAK to rule out the possibility of a
+  premature end-of-batch due to a spurious EOT being received as line noise.
+  Since QBOX didn't re-send the EOT, QEM kept waiting until it finally timed
+  out (after a looong time :-().
+  QBOX will now wait for acknowledgement for the final EOT, so this problem
+  should be over now...
+
+  
+v1.19j   09 Dec 1992
+--------------------
+
+- The [R]aw dir command was accessible by any user with level >= NORMAL,
+  rather than COSYSOP. Fixed.
+
+- When no Mail-only time slot was defined, remote users had a time limit
+  of only 10 minutes. Fixed.
+
+- QSETUP_BBS remained open after loading until QBOX was quit. It is now
+  closed immediately after QBOX has read it. Note however that changes
+  made with QSETUP while QBOX is running will take effect only after QBOX
+  is quit and restarted.
+
+- There appears to be a bug in Qscan which leaves the point field in a
+  FSC-0039 packet header non-zero after the point address has been remapped.
+  E.g. the address "2:283/500.1" is remapped by Qscan to "2:7500/1.1"
+  rather than "2:7500/1.0" when the pointnet is 7500. This resulted in QBOX
+  not allowing this point to pick-up waiting mail since it treated the
+  point part of the pointnet address as significant.
+  As it is unlikely that Qscan will ever be fixed, I have adjusted the
+  remapping code in QBOX in such a way that QBOX will ignore the point
+  part of a pointnet address when looking for mail to pick-up.
+
+
+v1.19i   07 Dec 1992
+--------------------
+
+- Drastically changed the way QBOX is configured. Read README_NOW for details!
+  
+- Finally implemented the Network Mail front-end. You can definitively throw
+  away TempFront now!
+  Also, the problems with TempFront related to running QBOX with "buried"
+  windows under the Pointer Environment should be gone now. QBOX should always
+  write to its screen window with a zero timeout.
+
+- Added new download and upload protocols, Telink and SEAlink. These protocols
+  can handle batch file transfers (i.e. multiple files in a single file
+  transfer session). Support for external protocol drivers will be added in
+  future betas.
+
+- The [S]ysop menu no longer exists. Its options have been moved to the
+  FILES menu in somewhat different forms.
+  The [R]aw dir command will display the contents of the desired directory,
+  and the [O]verride directory command allows you to switch to a different
+  directory, so that you can use the [D]ownload and [U]pload commands to
+  down- or upload files to the directory of your choice rather than the
+  directory corresponding to the selected file area.
+  The [R]aw dir and [O]verride directory commands are only available to
+  users with security level COSYSOP or higher.
+
+- NetMail areas are now designated by a /N switch in the MAREAS_BBS entry.
+  Thus it is possible to have more than one NetMail area. Although the other
+  netmail utilities support only one NetMail area, this may be useful for
+  e.g. keeping sent or received NetMail messages.
+
+
+v1.19h   26 Apr 1992
+--------------------
+
+- Fixed bug introduced in 1.19f that caused the file list display to go haywire
+  on certain occasions.
+
+- When a log-off message was saved, the log file entry indicated erroneously
+  that it was saved in the user's current message area rather than the sysop
+  message area.
+
+- Removed "#" before area and message numbers of the "Saved message" log entry
+  for consistency.
+
+
+v1.19g   22 Apr 1992
+--------------------
+
+- Line input and (Y/N) functions sometimes had erratic behaviour, caused by old
+  viewdata code which I forgot to remove.
+
+- Some cosmetic changes made to the message attribute display.
+
+
+v1.19f   18 Apr 1992
+--------------------
+
+- New option in MAIL menu: [X]port to file (cosysop or higher level required).
+  Allows you to export the current message to a local device or file. If the
+  file already exists, the contents of the message being exported will be
+  appended.
+
+- New option in EDITOR menu: [R]ead text from file (cosysop level or higher).
+  Allows you to import a local text file into the message editor. The text file
+  may contain CR/LF's at the end of each line or just LF's.
+  If you import a message this way, the current contents of the editor buffer
+  will be destroyed.
+
+- New option in EDITOR menu: [H]andling (EXTRA level or higher). Allows you to
+  change the attributes (e.g. Crash, File Attach) of the message currently
+  being edited. Note that while it allows you to change almost all of the 
+  attributes assigned by the FidoNet Technical Standards Committee, only some
+  of the them are actually supported by the QBOX mail utilities (and mostly
+  only in the Network Mail area).
+  One useful attribute that is worth mentioning is the File Attach attribute.
+  When this is set, the Subject field is treated as a list of files to be sent
+  to the addressee along with the message. When the message is packed using
+  Erik Slagter's Qscan program, an outbound _ATT file is automatically built 
+  from the information in the subject line.
+
+- QBOX can now generate its own tear- and Origin line in EchoMail areas.
+  The text for the Origin line can be defined on a per-area or per-group basis
+  or globally for all areas. This is done in the following order:
+
+  - If the message area directory, as defined in MAREAS_BBS, contains a file
+    called "ORIGIN", the origin line text will be taken from that file;
+
+  - if there is a file "ORIGIN_<tag>" in the SYSTEM directory, the origin line
+    text will be taken from that file. <tag> is the single-letter area group
+    tag defined for that area in MAREAS_BBS; so if the current area has a tag A
+    QBOX will look for a file ORIGIN_A;
+
+  - If neither of the above files can be found, QBOX will look for a file
+    "ORIGIN" in the SYSTEM directory. If this file is absent too, QBOX will NOT
+    generate a tear- and origin line and will thus behave as previous versions.
+
+  You can mix the above three forms in any way you like; if QBOX can't find a
+  "local" ORIGIN file for the current area it will look for an ORIGIN_<tag>
+  file, and failing that it will look for a global ORIGIN file.
+
+  In any of the three forms, QBOX can generate a "randomly" chosen Origin-line.
+  To allow this, simply put several lines into the ORIGIN-files. QBOX will
+  randomly choose one of these lines as Origin-line for the current message.
+  Be careful NOT to enter empty lines (especially at the end); otherwise you
+  may get a message with an "empty" Origin-line (unless you really intended to
+  do so!).
+
+  NOTE: You should NOT enter your network address in brackets in the
+  Origin-files; QBOX will automatically add this info (see also the /A option
+  below). If the Origin line text together with the " * Origin: " keyword and
+  network address doesn't fit into 79 characters (as required in EchoMail),
+  QBOX automatically truncates the Origin line text so that the whole
+  Origin-line will fit.
+
+- And THIS is the feature you've been waiting for: a FULL-SCREEN SysOp message
+  editor! You need to have a plain-text editor for this as QBOX simply calls an
+  external editor to edit a temporary file (ram1_MSG_TMP), which is imported 
+  back into the QBOX edit buffer after you have exited from the external 
+  editor.
+  The filename of the external editor (which should be EXECable) is specified
+  using the QBOXCONFIG program. QBOX pushes the full QDOS name of the MSG_TMP
+  file onto the command string of the editor before executing it, so if your
+  editor can take its workfile name from the command string (my freeware QED
+  editor is an example of this) the whole process can be automatic.
+
+  When entering or replying to a message in local mode, you will now no longer
+  be greeted by the boring QBOX line editor, but by a full-screen all-singing
+  and dancing editor! In the unlikely event that you still want to use the
+  normal line editor in local mode, simply leave the "External editor" field
+  blank in QBOXCONFIG.
+  When you have finished your message, exit the editor in the normal way (in
+  QED with the 'X' command). QBOX will then read the edited message text into
+  its normal editor (unless an error occurred when executing the external
+  full-screen editor) and you can then List, Abort, Save etc. it as usual.
+
+  NOTES:
+
+  1. In the present version, the name ram1_MSG_TMP is hardcoded. This means
+     that a RAMdisk is necessary to use the external editor. I've decided to do
+     this because it's faster, and because older FLP drivers appear to have a
+     bug when a file is overwritten and then immediately FS.LOADed from disk by
+     QED (the first betatesters got the contents of the previously edited
+     message rather than the current!). In future versions the temporary
+     message file name will be configurable.
+
+  2. It's best to use the Pointer Interface if you want to use the external
+     editor, otherwise your screen may look a bit ugly after you have exited 
+     from the editor...
+  
+- Added new MAREAS_BBS option: "/A=<address>". This allows you to define a
+  different (alias) address per message area. Useful if you are a multi-network
+  node or point. E.g. when having "/A=50:1000/4" in your MAREAS_BBS for that
+  particular area, QBOX will use address 50:1000/4 in EchoMail Origin lines.
+  NOTE: The current version of SCANMAIL (1.01b) does NOT support multi-network
+  operations; it is however expected that newer versions will.
+
+- New EDITOR menu option [F]rom (EXTRA level or higher). This allows you to
+  change the default "From:" name, and network address if you are in the 
+  Network Mail area.
+
+- TWIT-level users can no longer enter the Change user settings menu.
+
+- Fixed problem with display of "negative" Time-left values.
+
+- A log file entry is now made when the user saves or aborts a message.
+
+- Wildcards in the SYSOP menu [D]ir command now finally work.
+     
+- Local logon from sysop panel now user "L" key rather than "T".
+
+- Fixed cosmetic bug causing "Waiting for call-back" to be displayed
+  occasionally on start-up.
+
+- [U]pdate message command now really works only with level EXTRA or higher!
+
+- Fixed bug causing "bleed-through" of block message during file transfers.
+
+- Fixed bug affecting local logons while another user logs on or off
+  simultaneously.
+
+
+v1.19d   14 Feb 1991
+--------------------
+
+- Fixed bugs in new/personal mail scan (new LOOKMAIL version)
+
+- Fixed bugs affecting PRIVATE status of messages
+
+- Entering an empty name in Change user settings no longer causes lockup
+
+- Garbage is no longer displayed in status window during log-on procedure
+
+- Chat mode now has wordwrap at end of line!
+
+- Fixed bug that caused uploads to fail with "I/O Error" message
+
+- File- and Sysop menu now return to Main with [Q]uit for consistency
+
+
+v1.19c   10 Feb 1991
+--------------------
+
+- Fixed bug in reading of destination network address when entering NetMail
+  message (now defaults correctly)
+
+- Fixed bug in "To:" name / network address entry that caused a crash under
+  certain circumstances
+
+- Local logons now have no time limit and inactivity timeout
+
+
+v1.19b   10 Feb 1991
+--------------------
+
+- First beta release since 1.14.
+

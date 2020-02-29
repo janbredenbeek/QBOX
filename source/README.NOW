@@ -1,0 +1,371 @@
+                           QBOX Version 1.19 Notes
+                           -----------------------
+
+This archive should contain at least the following files:
+
+QBOX              The QBOX executable program
+QSETUP            QBOX Setup program (EXEC)
+CVTUSER           pre-1.19 USERS_BBS Conversion program (EXEC)
+KILLMSG           New version of KILLMSG (works with new LASTREAD_BBS)
+LOOKMAIL          New version of LOOKMAIL (supports 256 areas)
+SCANMAIL          Patched version of SCANMAIL v1.01; generates bundles
+                  which will be truncated when they have been sent.
+QSPHAYES          Latest version of QSPHAYES, a QSPIL driver for
+                  Hayes-compatible modems (configurable with QSETUP)
+QSPHAYES_DOC      Documentation on QSPHAYES and serial communication on the
+                  QL in general (Quill document file).
+QSPILTCP_bin      A QSPIL driver for use with TCP/IP using suitable emulators
+                  (QPC2, SMSQmulator or UQLX)
+SERC_REXT         Extended serial port driver (use only with QL hardware!)
+QLTERM            QLTerm v2.35 terminal program, needed for local and
+                  chat sessions. Includes qltconfig_bas for configuration
+QED               My much-praised text editor for editing the text files and
+                  local message editor. Includes help file and configuration
+                  program.
+WHATSNEW_119      List of enhancements since v1.14 (last non-beta)
+README_NOW        This file
+CHANGES_LST       List of changes and bugfixes since v1.19b
+
+
+This is a re-release of the latest version of QBOX, which was originally
+released on 21 October 1994. It is a ready-to-run WIN container containing an
+example BBS setup, configured for communication through TCP/IP on emulators
+such as QPC2, SMSQmulator or UQLX.
+
+As I write this, it's now 2020 and the BBS scene from the '80s and '90s has
+long gone, with perhaps the exception of a few diehards. So what's the use of
+releasing a BBS package that hasn't been updated for more than 25 years?
+Well, since I re-joined the QL scene some years ago I have noticed that the QL
+scene isn't entirely dead - there's still software being developed and updated,
+thanks to a few enthusiasts. Most of my software projects have been preserved
+and I'm still in the process of sharing them, including the source code, on
+GitHub.
+QBOX has been my biggest project ever, representing seven years of work and
+thousands of lines in 68K assembly. It would be a pity to let this go lost!
+
+"But BBS systems were meant for modems on analogue phone lines. Nobody uses
+them anymore!"
+Well, modems on analogue phone lines have been replaced by Internet, that's
+true. But I wouldn't have spent dozens of spare time to prepare QBOX for re-
+release if there wasn't something new to it. Remember, QBOX had to deal with
+very different modem setups, ranging from dumb 300 bps to even faster than the
+QL's serial ports could handle. To isolate QBOX from the modem-specific code,
+QSPIL (Qbox Serial Port Interface Layer) was devised so QBOX didn't have to
+know about Hayes-commands and the like. When it had to wait for a call, it
+just called the 'wait for call' routine in the QSPIL driver which handled the
+modem-specific commands.
+Now that QL emulators have a TCP device to communicate via TCP/IP, the idea
+that came up was just to replace the Hayes-specific QSPIL driver with a new
+QSPIL driver which uses the TCP device, so QBOX can now be reached over
+Internet without having to change anything to its code!
+
+Even when you have no plan to hook up QBOX to the Internet, it might still be
+useful for transferring files from one system to another, e.g. when you have an
+original QL with only floppydisks or even Microdrives, and you want to transfer
+files from an emulated environment to your QL. Please read the README.md and
+QL-client.md files for more info.
+
+The rest of this text is from the original file. The next paragraph has been
+included mainly for nostalgic reasons...
+
+Jan Bredenbeek, February 2020.
+
+
+"When is it ready?"
+-------------------
+
+I am aware of the fact that the ever continuing "beta" status and the
+scattered documentation of the QBOX package is becoming a big handicap. 
+Another problem is that, with the code size of QBOX now approaching 48K,
+the limits of programming in (position-independent) assembly code are 
+now rapidly approaching so that some software "hacks" will be needed in 
+the near future to get QBOX successfully assembled again. But I feel 
+that some important features still need to be implemented before the 
+final 1.20 release, some of which are:
+
+- Ability to make outbound mailsession calls using a scheduler;
+- Implementation of YooHoo mailsession handshake and WaZoo file requests;
+- Usage of Doors (external programs) within the BBS;
+- External file transfer protocol support.
+
+From the comments I got lately, the latter option seems to be most
+needed as SEAlink doesn't always seem to offer reliable transfers.
+One option for implementing external protocols would be to use Jonathan
+Hudson's XPR library, but I must say that it is rather awkward to
+implement as it requires the presence of a Thing for the host program
+to communicate. My policy with QBOX has always been to avoid the need
+to have proprietary extensions present in order to run it.
+Another option would be using a port of Chuck Forsberg's rz and sz
+programs to implement Y- and Zmodem protocols. I do have such a port
+from Jonathan Hudson, regrettably a beta version without source. Does
+anyone have them? (not the original Forsberg source please).
+
+As for the much talked about "C" version of QBOX: I really don't know
+when it will see the light, if it will ever see it. Even if QBOX 1.20
+will have been finished, there are lots of projects left with a higher
+priority (mailer, tosser/scanner etc). So don't keep asking about it,
+especially as long as 1.20 hasn't been out yet ;-)
+
+
+Installing QBOX 1.19 (only if you are upgrading from a pre-1.19 version)
+------------------------------------------------------------------------
+
+QBOX 1.19 allows for up to 256 message- and file areas rather than 32. As a
+result, the format of USERS_BBS has been slightly changed to accomodate this:
+
+- The "lastread messages" of each user are no longer kept in USERS_BBS, but in
+  a new file called LASTREAD_BBS;
+
+- The message- and file area access is no longer selected for individual areas,
+  but for GROUPS of areas. Each user can be member of up to 26 groups (tagged A
+  to Z), and each message- and file area can be tagged to a certain group. This
+  tagging of areas is done by putting the following verb in MAREAS_BBS or
+  FAREAS_BBS, between the area directory and the area description:
+
+  /G=<letter>
+
+  where "letter" is the letter of the area group. E.g.:
+
+  win1_QBOX_MSG01_ /G=N General message area
+  win1_QBOX_MSG02_ /G=P Private message area
+  win1_QBOX_MSG03_ Sysop message area
+  win1_QBOX_MSG04_ /G=Q Quanta message area (RESTRICTED)
+
+  In the above example, area 1 can be accessed by users who have access to
+  group N, area 2 can be accessed by users who have access to group P, area 3
+  can be accessed by any user (since no group tag is given), and area 4 is open
+  for users who have access to group Q.
+  File area access is done in a similar way, but then it's of course the file
+  area access groups which defines the file areas the user has access to.
+
+To create LASTREAD_BBS from the existing USERS_BBS file and convert the
+individual area access keys to groups, the program CVTUSER has been included.
+You should edit your MAREAS_BBS and FAREAS_BBS files and assign a group tag
+to any area you want to restrict access to. When processing USERS_BBS,
+CVTUSER looks up the individual message- and file areas the user has access
+to, and makes him/her member of all groups contained in those areas.
+After you have assigned group tags to your areas, run CVTUSER by typing:
+
+EXEC_W <device>CVTUSER
+
+The program then prompts for the directory where you have stored the QBOX
+system files (it uses the Toolkit II program directory by default). When you
+have entered this directory and CVTUSER successfully located USERS_BBS,
+MAREAS_BBS and FAREAS_BBS, it will proceed with the conversion.
+
+
+Configuring QBOX
+----------------
+
+DO NOT use the QBOXCONFIG_BAS program of previous QBOX versions to configure
+QBOX 1.19! You should use the QSETUP program included within the distribution
+ZIP file instead. This is a comprehensive fully menu-driven program which
+should be fairly self-explanatory.
+As of v1.19i, QBOX no longer has its configuration data stored within the QBOX
+program itself. This data is now kept in a separate data file called 
+SETUP_BBS, while the QSETUP program keeps a backup copy in SETUP_BBS_OLD.
+
+When QSETUP is started for the first time when there is no SETUP_BBS file, it
+will prompt you to enter the drive and possible subdirectory where it should
+be located. This should preferrable be the same directory where QBOX resides.
+When QBOX is started up, it will first look on its command line for the
+directory where SETUP_BBS should be. For instance, the command 
+
+EX QBOX;"flp1_QBOX_SYSTEM_"
+
+will instruct QBOX to look for SETUP_BBS on flp1_QBOX_SYSTEM_.
+If no directory is specified on the commandline, QBOX will look for SETUP_BBS
+in the Toolkit II default program- and data directory in that order.
+
+
+Mail Networking and TempFront
+-----------------------------
+
+As of v1.19i, QBOX has an inbuilt mailer front-end to answer incoming
+FidoNet<tm>-compatible mail calls. Hence, it is no longer necessary to have
+the TempFront front-end installed to answer mail calls.
+For outgoing mail calls, you still have to use the MAIL program.
+
+In the QSETUP "Miscellaneous" menu, the "Session mode" option lets you
+choose between "Mail-only", "BBS-only" and "Mail and BBS" mode.
+In "Mail and BBS" mode, QBOX allows both Network Mail calls and BBS user
+calls. In "Mail-only" mode, only mail calls are allowed (human callers
+will get a message "Mail-only system, please hang up"). Finally, in
+"BBS-only" mode, QBOX will always immediately enter the BBS when receiving
+a call, like previous versions without TempFront installed did.
+
+When in "Mail and BBS" mode, it is possible to define a daily time slot
+during which QBOX will still accept only mail calls. This is compulsory in
+certain mail networks, e.g. FidoNet requires all nodes to accept only mail
+calls during the Zone Mail Hour. For Europe, this hour is between 02:30
+and 03:30h UTC (GMT).
+If a user has been logged on and his/her available session time would extend 
+into the mail-only slot, the session time limit will be adjusted so that
+the user will have been logged off before the start of the mail-only slot.
+
+For tossing packets, you should use TOSSMAIL version 1.19 or newer (the
+current version is 1.19c). Older TOSSMAIL versions do not support the full
+range of 256 message areas.
+
+
+KILLMSG
+-------
+A new version of KILLMSG has been included which updates the LASTREAD_BBS file
+rather than USERS_BBS. You should therefore use this new version with QBOX
+1.19. Using the old version will not harm your USERS_BBS, but won't update the
+lastread messages correctly.
+
+
+LOGFILE
+-------
+QBOX now logs simultaneously to the screen window and a file. You should use
+RAMdisk for logging to file, as other devices tend to disable interrupts at
+certain intervals, upsetting serial I/O.
+
+Since QBOX v1.19 uses a different format for the log file, certain utilities
+which rely on this format may not work properly anymore. It is the
+responsibility of the author of these utilities to fix those problems, since
+I've never stated that the QBOX log file format would remain the same over a
+period of ages to come...
+
+
+MORE NOTES ON MESSAGE- AND FILE AREAS
+-------------------------------------
+The format of a line in MAREAS_BBS/FAREAS_BBS is now:
+
+<directory> [flags] [description]
+
+[flags] are zero or more terms starting with a dash ("-") or slash ("/")
+character, followed by a letter, optionally followed by a parameter. They
+should be separated from each other by at least one space; within a flag no
+spaces are allowed. QBOX currently supports the following flags in message
+areas:
+
+/E       marks the area as EchoMail
+/N       marks the area as NetMail
+/P       marks the area as Private (i.e. all entered messages have forced Pvt
+         status
+/G=<tag> indicates the area group (see above)
+/A=<address> Use <address> as your own network address rather than the main
+             address (the first address in QSETUP->Mailer->Addresses).
+
+The flags replace the "" and "@" characters used in QBOX 1.14 to mark an area
+Net- or EchoMail.
+
+
+RUNNING EXTERNAL PROGRAMS
+-------------------------
+
+QBOX v1.19m and later have the ability to execute external programs on
+the following occasions:
+
+- When a user has logged off the system;
+- When inbound mail and/or files have been received during a mail session;
+- When the modem has reported a FAX connect.
+
+The program specification in QSETUP can have one of two forms:
+
+<program name> [parameters]
+
+or
+
+@<batch file name>
+
+In the latter case, <batch file name> represents the name of a QDOS
+text file containing program specifications on each line, as in the
+first form. This allows for any number of programs to be executed, as
+well as program specifications longer than allowed by QSETUP (up to 127
+characters on each line).
+As an example, you can set up a batch file "flp1_domail" containing the
+program specifications:
+
+flp1_TOSSMAIL
+flp1_SCANMAIL flp1_
+flp1_QSCAN -d flp1_
+flp1_LOOKMAIL
+
+Then, if you enter "@flp1_domail" in QSETUP->Mailer->Mail processing,
+QBOX will automatically execute TOSSMAIL, SCANMAIL, QSCAN and LOOKMAIL
+when mail has been received in a mail session.
+
+If there are any parameters, they should be separated from the program
+name by at least one space. The parameters are pushed on the program's
+stack as a command string in the usual way.
+In the parameter string, the percent sign character '%' introduces a
+macro sequence, which will be replaced in the actual command string by
+a string as described below. If you want to have a literal percent sign
+in the command string, you must double it in the parameter string. 
+
+Notes:
+
+- Case is significant, e.g. "%a" is different from "%A";
+
+- The macro expansion also applies to programs executed via a batch
+  program specification;
+
+- Macros that expand to certain user data, e.g. "%n" for the user's 
+  name, only make sense when used in the "After User" program 
+  specification.
+
+
+List of external program parameter macros
+-----------------------------------------
+
+%%       Inserts a single "%" character
+%a       Number of current message area
+%A       Number of current file area
+%b       Baud rate
+%c       User's city
+%e       User's password
+%f       Expands to list of selected files for down/upload (used in
+         future versions for external file transfer protocols)
+%j       Minutes online this session
+%l       User's screen length
+%m       "More?" (expands to ON or OFF)
+%n       User's name
+%N       System's name
+%s       Sysop's name
+%t       Time left for this session, in minutes
+%u       User's record number (0 = first USERS_BBS record, and so on)
+%w       User's screen width
+%W       Name of external message editor workfile
+%x       Extra connect information from modem's CONNECT message. E.g.
+         when the modem reported CONNECT 14400/ARQ/V32/LAPM/V42BIS,
+         this macro will expand to "/ARQ/V32/LAPM/V42BIS".
+
+Passing "stack channels" to an external program
+-----------------------------------------------
+
+It is possible to pass the channel ID of QBOX's serial channel as well
+as its logfile to the external program as QDOS "stack channel". In
+addition, you can also open an arbitrary file for input or output 
+(overwrite or append) and pass its channel ID to the external program.
+This is accomplished using the macros "%<", "%>" and "%>>":
+
+- The "%<" macro, used on its own, will push the channel ID of QBOX's
+  serial input channel on the external program's stack. If the macro is
+  followed by a filename (using no intervening space character), QBOX
+  will open the file for input and push its channel ID on the external
+  program's stack.
+
+- The "%>" macro, used on its own, will push the channel ID of QBOX's
+  serial output channel onto the external program's stack. Note that this
+  will be the same as for the "%<" macro unless the program is started
+  up from a local QBOX server job.
+  If a filename is specified after the macro, using no intervening
+  spaces, then QBOX will open the specified file for overwrite and push
+  its channel ID onto the external program's stack. A special case is
+  when the filename is "log": QBOX will then push the channel ID of its
+  logfile onto the program's stack.
+
+- The "%>>" macro does the same as the "%>" macro, except that the file
+  is opened in append mode when a filename is specified.
+
+Example for a FAX server program:
+
+  flp1_QFAX %< %>>ram1_QFAX_log %> -v -x -G
+
+
+  
+                           --- END OF FILE ---
+

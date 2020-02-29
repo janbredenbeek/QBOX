@@ -1,0 +1,164 @@
+                  List of new features since QBOX 1.14
+                  ------------------------------------
+
+
+*IMPORTANT* !
+-------------
+Since this version of QBOX supports more message- and file areas (up to 256 as
+opposed to 32 in 1.14), the format of the USERS_BBS file is not entirely 
+backwards compatible. The distribution ZIP archive includes a conversion 
+program CVTUSER which, when EXECed, will convert the format. Please refer to
+the README_NOW file included within the archive.
+
+Enough said on that for now, let's move on to the list of new features (which
+will probably be incomplete):
+
+- Up to 256 message- and file areas are now supported rather than 32. In order
+  to implement this, a change has been made to the USERS_BBS structure. The
+  fields US_MACCS and US_FACCS no longer specify access of each user to
+  INDIVIDUAL message- and file areas, but to GROUPS of message- and file areas.
+  In addition, the "lastread" message pointer is no longer kept in the last 32
+  bytes of each USERS_BBS record, but in a separate file, LASTREAD_BBS, which
+  holds the lastread pointers for each user in parallel with USERS_BBS. Each
+  record of LASTREAD_BBS is 512 bytes (256*2) long. Although current versions
+  of QBOX only allow a maximum of 255 messages per area, LASTREAD_BBS uses two
+  bytes to store a lastread pointer so that a format conversion will not be
+  needed in the near future.
+  The new mechanism of message- and file area groups is explained further in
+  the README_NOW file.
+
+- Network Mail is now fully supported. When entering a message in the
+  NetMail area, you are not only prompted for the user name but also for the
+  Network address, in the form <zone>:<net>/<node>.<point>. A "short" form is
+  allowed where the zone, net or node number may be left off, in case of which
+  your own zone, net or node number is assumed. For instance if you are node
+  2:283/500, then the following short forms will be expanded as follows:
+
+  .1      will be expanded to 2:283/500.1
+  501     will be expanded to 2:283/501.0
+  250/121 will be expanded to 2:250/121.0
+
+  When Replying to a message in the network mail area, QBOX will by default
+  take the network address of the originator of the message being replied to as
+  destination address. While entering a message in the NetMail area, the
+  destination address may be changed with the editor "To" command.
+  To export a NetMail message into a mail packet, you need a utility such as 
+  PACKMSG.
+
+- When QBOX is started up with "-Local" or "-L" in the command string, only a
+  local copy is started up. This is useful if you want to do a local logon
+  without having to go through the sysop panel. A working QSPIL driver is also
+  not needed then.
+
+- QBOX now simultaneously logs to the screen window and a file. Two log files
+  can be specified in QBOXCONFIG; one for the "online" node and one for the
+  "local" node. I strongly recommend you to use a RAMdisk; other devices tend
+  to disable interrupt at certain times which may upset serial I/O.
+  The log files are automatically created if non-existent; if existent the new
+  log will be appended. A log file can only be used by one node; for instance
+  you cannot use the same "local" log file by 2 local copies at the same time.
+
+- The log file format has been changed drastically. On start-up, QBOX writes
+  an identification line consisting of dashes followed by the current date,
+  followed by a comma, followed by the program name. Subsequent lines have the
+  format "<tag><sp><hh>:<mm>:<ss><sp><sp><text>", where <tag> is a single
+  character identifying the type of log entry (currently most messages are
+  tagged with a space, however the characters "?" and "!" are currently used
+  for non-fatal and fatal errors).
+  A log file example:
+
+  ----------  Sun 10 Feb 1991, QBOX
+    02:34:56  Entering message
+  ? 02:40:45  I/O Error file win1_QBOX_MSG01_MESSAGES_BBS: drive full
+    02:40:46  Main menu
+
+- Information on the user currently online is now shown in sysop window.
+
+- Attempting chat mode while QBOX is waiting for a call no longer causes a
+  lock-up.
+
+- The sysop windows may now be redrawn by pressing F5.
+
+- Invalid commands in menus are now ignored to increase immunity to line noise.
+
+- Checking of user name syntax has been relaxed; names may now consist of more
+  than two words and any printable ASCII characters are allowed.
+
+- DISGRACE level users can no longer enter messages, except a private message
+  to the sysop when logging off (new feature!).
+
+- The sysop's actual name can be configured into QBOX. Entering "Sysop" in the
+  TO: field of a message will redirect it to the sysop's name.
+
+- The message buffer size can be configured between 8K and 32K bytes. Default
+  is 32K; you should generally leave this alone unless you are cramped with
+  memory. Also, QBOX will no longer choke on messages which don't fit into the
+  buffer, but will display a "Message too large" message.
+
+- Checking on ^C/^K and ^S has been improved. The keys "P" and "S" may now also
+  be used to pause respectively stop output, for users who are used to
+  QuickBBS/RemoteAccess BB systems etc.
+
+- Upload drive space and sysop Dir command now take into account the extended
+  medium info QDOS trap present in V2 drivers (such as the Miracle harddisk).
+
+- Users are no longer allowed to change their name unless they have level
+  COSYSOP or higher.
+
+- The logon procedure has been changed. QBOX will immediately accept the name
+  entered and scan the user file. If not found, the file NOTFOUND_BBS is 
+  displayed to the user (or a default message if not present). After that, the
+  user is asked confirmation for the name entered. The file NEWLOG_BBS is then
+  displayed if the user confirms YES.
+
+- QBOX now also displays the date and time a message has been "received" (i.e.
+  read for the first time by the addressee). This only applies though to
+  messages not already marked as received by earlier QBOX versions.
+  The date and time of receipt is stored at offset 28 dec in the message
+  header. Earlier versions used this field to store the date/time of last
+  modification, which QBOX 1.19 no longer does.
+  In the Network Mail area, this field indicates the date and time the message
+  has been sent. It's up to the mail packer to set this field accordingly.
+
+- The "Update message" command can now only be used by users with level EXTRA
+  or higher. It is now also possible to modify a message not from yourself. 
+  Gerenally it is not polite to do so but it may be required in some cases. 
+  Extra lines will be inserted into the message text indicating the original 
+  message date and user who updated the message.
+
+- The Mail section [K]ill command has been renamed [D]elete.
+
+- A new Mail section [K]ludge command has been added (only available to users
+  with level EXTRA or higher). This toggles displaying of hidden control lines
+  in the message text, as well as Echomail SEEN-BY lines.
+  Kludge lines (marked by a CTRL-A character) are displayed with a "@"
+  character in front of them.
+
+- When replying to a message and quoting the original, QBOX no longer quotes
+  the tear- and origin lines in EchoMail messages. If, however, the kludge
+  display has been turned on by the [K]ludge command (only level EXTRA or
+  above), the tear- and origin line will be quoted as before. Note that you
+  should take great care when quoting then, since not only tear- and origin
+  lines will be quoted but also kludge- and SEEN-BY lines. You should at least
+  avoid quoting SEEN-BY lines, since they may upset some mail processing
+  software when appearing in the message text.
+
+- QBOX now supports the MSGID and REPLY kludge lines. These are used to
+  identify a message across mail networks, for reply linking and duplicate
+  checking purposes. The format of a MSGID kludge is:
+
+  MSGID: <address> <unique_number>
+
+  where <address> is the network address (zone:net/node.point) and
+  <unique_number> is an 8-digit hexadecimal number which must be unique for the
+  given address. QBOX derives this number from the system clock (shifted left 4
+  bits) and a 4-bit counter.
+  The REPLY kludge has as its parameter the MSGID parameter of the message
+  replied to.
+
+- The "Local" attribute bit of entered messages is now correctly set, enabling 
+  the SCANMAIL -NOFORWARD option to work correctly at last.
+
+- There is now an "inactivity timeout" of 3 minutes, after which the user will
+  automatically be logged off.
+

@@ -1,0 +1,79 @@
+                           QSPHAYES V1.00g2 NOTES
+                           ----------------------
+
+This archive file contains QSPHAYES v1.00 gamma 2, a much improved QSPIL
+driver for Hayes-compatible modems. Here below follows a list (probably
+incomplete!) of improvements with respect to the 0.99 versions:
+
+
+v1.00g2 (19 August 1994)
+------------------------
+
+- Implemented a new function SP.DCD in QSPHAYES and IO.DCD in SERC_REXT,
+  based on suggestions made by Lester Wareham. These allow for the
+  automatic EOF on DCD loss to be disabled, as required in some FAX
+  configurations. Updated QSPHAYES_DOC accordingly.
+
+- Fixed a cosmetic bug (quirky menus) in QSPSETUP.
+
+- Corrected some minor bugs in QSPHAYES and SERC_REXT.
+
+- Included source now (except QSPSETUP). I don't expect many changes to occur
+  between now and the final release (except for bugfixes of course).
+
+
+v1.00g1 (25 March 1994)
+-----------------------
+
+- No less than ten (10) new possible baud rates. QSPHAYES now supports 300,
+  1200/75, 1200, 2400, 4800, 7200, 9600, 12000, 14400, 16800, 19200, 21600,
+  24000, 26400, 28800 and 38400 bps. Also, CONNECT FAX is recognised so that
+  future QBOX versions can respond to an incoming fax call. Of course, all
+  modem responses are configurable.
+
+- It is no longer required to have the modem command echo off (ATE0). 
+  QSPHAYES automatically filters out the local echo of its own commands.
+
+- QSPHAYES can now recognise the "RINGING" response during dialling. It is
+  effectively ignored though in the present version, but causes no harm now.
+
+- The number of rings before QSPHAYES sends the answer command to the modem is
+  now configurable.
+
+- A new fully menu-driven configuration program has been written.
+
+- QSPHAYES now handles the serial channel open and close operations
+  differently, closing and re-opening it only when necessary. Also, the bug
+  present in QBOX 1.19l which sometimes causes QBOX to go into a loop is now
+  avoided.
+
+The biggest improvement though will probably be the new manual included
+within this archive, named QSPHAYES_DOC (and yes, it's a QUILL file!). This
+contains detailed instructions how to set up QSPHAYES and your communication
+equipment in general. Also, it provides a complete QSPIL technical reference.
+
+
+IMPORTANT:
+----------
+As this version of QSPHAYES supports more baud rates than was documented in 
+the original QSPIL standard, you must use it ONLY with the LATEST versions of
+QBOX and MAIL!. At present, the latest version of QBOX is 1.19l, and the latest
+version of MAIL is 1.19j. Later versions are OK, but earlier versions are not!
+If you need to use an earlier version of QBOX/MAIL, you must ensure that
+QSPHAYES will never report a "CONNECT" rate higher than 9600 bps. If you have a
+faster modem, then configure the "CONNECT 9600" response as "CONNECT". This
+causes any "unknown" connect string to be reported as a CONNECT 9600. Also, the
+"Error Control" string (normally "/ARQ") must be changed to something which
+cannot be reported as a string after "CONNECT xxxxx" by your modem. E.g. "ZZZ"
+will probably do.
+When dialling out, MAIL will always attempt to use the highest possible baud
+rate (e.g. 28800). If this is undesirable, then make the "Dial Prefix" for all
+baud rates higher than supported empty.
+
+Well, that's it for now, remember if you don't understand something at first,
+then "Read The Fine Manual"! If you are still convinced that you have found a
+"bug", then please report it in the SYSOP.QBOX echomail conference. You can
+also post any comments about this version there.
+
+JB <
+

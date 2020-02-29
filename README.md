@@ -76,6 +76,6 @@ This locks down the user qbox so after the SSH login it forces execution of the 
 
 ## Further reading
 
-If you want to use a QL or compatible system as a BBS client using TCP/IP, please read the [QL-client.md](https://github.com/janbredenbeek/QBOX/QL-client.md) file for more info.
+If you want to use a QL or compatible system as a BBS client using TCP/IP, please read the [QL-client.md](https://github.com/janbredenbeek/QBOX/blob/master/QL-client.md) file for more info.
 
 Jan Bredenbeek, February 2020.

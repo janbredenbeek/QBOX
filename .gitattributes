@@ -13,6 +13,8 @@
 *.bin binary
 *.rom binary
 *.rel binary
+*.o   binary
+*.a   binary
 
 # Custom for Visual Studio
 *.cs     diff=csharp

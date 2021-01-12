@@ -11,8 +11,12 @@
 ; 0.92   17 Feb 2020       Fixed endless WILL-DO loops in Telnet handshake
 ; 0.93   19 Feb 2020       Cleaned up code, fixed wrong flag settings in SP.FBYTE
 ; 1.00   26 Feb 2020       First release version
+; 1.01   28 Mar 2020       Set TCP_NODELAY for better speed and reliability,
+;                          especially when transferring with XMODEM
+; 1.02   14 Apr 2020       Implemented SP.DIAL for outgoing connections
+; 1.03   12 Jan 2021       SP.WTCAL now logs port number listening on
 
-version  SETSTR   1.00
+version  SETSTR   1.03
 
 * Macro for calling QBOX's PRLOG routine
 
@@ -89,6 +93,7 @@ IP.BIND   EQU     $58
 IP.CONNECT EQU    $59
 IP.FCNTL EQU      $5A
 
+TCP_NODELAY EQU      1
 * D0 keys for QSPIL calls
 
 SP.INIT  EQU      0                 ; Initialise driver
@@ -145,7 +150,7 @@ CON_FAX  EQU      -2                ; Fax connect
 
          jmp      start(pc)
          dc.l     qspil_id
-SIGNON   STRING$  {'QSPILTCP v[version]  Copyright (C) 1990-2020 by Jan Bredenbeek'}
+SIGNON   STRING$  {'QSPILTCP v[version]  (C) 1990-2021 by Jan Bredenbeek'}
          DCB.B    64-(*-SIGNON),0   ; fill
 
 ; Configuration data (start at offset 72 or $48)
@@ -188,6 +193,9 @@ tcpname  string$  'TCP_'
 sockname string$  'SCK_'
          dcb.b    32-(*-sockname),0
 
+defport  string$  ':23'
+         dcb.b    8-(*-defport),0
+
 start    cmpi.w   #sp.maxop,d0      ; valid function call?
          bhi.s    err_ni            ; jump if not implemented yet
          add.w    d0,d0             ; calculate table offset
@@ -215,7 +223,8 @@ optbl    dc.w     sp_init-start
 
 ; Initialise driver
                                     
-sp_init  bsr      openchan
+sp_init  moveq    #0,d3
+         bsr      openchan
          bne.s    init_end
          move.l   #QSPIL_ID,d1
 init_end rts
@@ -224,6 +233,7 @@ init_end rts
 
 sp_wtcal move.l   d1,d4             ; job ID
          move.w   d3,d5             ; save timeout
+         moveq    #0,d3
          bsr      openchan          ; (re-)open TCP channel if necessary
          bne      wtcal_rt
 wtcal_bi moveq    #16,d1            ; length of sockaddr structure
@@ -238,13 +248,22 @@ wtcal_bi moveq    #16,d1            ; length of sockaddr structure
 ; for listening, we'll have to wait until the TIME_WAIT status times out!
 
          prlog    {'QSPILTCP: Bind socket failed, retrying in 60 seconds',lf}
-         move.w   #60*50,d3
+         move.w   #61*50,d3         ; one second extra to be on the safe side
          bsr      pause
          bra      wtcal_bi
 wtcal_ac moveq    #1,d1             ; accept just one connection
          moveq    #-1,d3
          moveq    #ip.listen,d0
          trap     #3                ; set queue size
+         lea      lis_msgp(pc),a1   ; pointer after listen msg
+         move.w   lis_port(pc),d1   ; port number
+         bsr      itod.w            ; convert to ascii
+         move.b   #lf,(a1)+         ; add lf
+         move.l   a1,d1
+         lea      lis_msg+2(pc),a1
+         sub.l    a1,d1
+         move.w   d1,-(a1)          ; enter total length of message string
+         jsr      (a4)              ; log it
 
 ; Now wait for a connection to come in. Loop until we get one or we reach
 ; timeout as specified in D3 on entry
@@ -284,19 +303,25 @@ wtcal_1s moveq    #50,d3            ; one second
          blt.s    wtcal_rt          ; time up, return NC
 wtcal_wt bsr      pause             ; wait and give up timeslices
          bra      wtcal_lp
-wtcal_ok lea      iac_stat(pc),a1
+wtcal_ok bsr.s    init_iac
+;         lea      teln_opt(pc),a1   ; telnet options to send
+;         move.w   (a1)+,d2
+;         moveq    #-1,d3
+;         bsr      sps_out
+wtcal_en move.l   speed(pc),d1
+         suba.l   a1,a1             ; no extra info
+wtcal_rt rts
+
+init_iac lea      iac_stat(pc),a1
          move.b   t_do_iac(pc),(a1) ; Observe Telnet IAC?
-         beq.s    wtcal_en          ; no, done
+         beq.s    ii_end            ; no, done
          sf       got_iac-iac_stat(a1) ; clear flags
          clr.l    conf_var-iac_stat(a1)
          lea      teln_opt(pc),a1   ; telnet options to send
          move.w   (a1)+,d2
          moveq    #-1,d3
-         moveq    #io.sstrg,d0
-         trap     #3                ; send them
-wtcal_en move.l   speed(pc),d1
-         suba.l   a1,a1             ; no extra info
-wtcal_rt rts
+         bsr      sps_out
+ii_end   rts
 
 ; SP.ANSWR, currently does nothing
 
@@ -307,12 +332,14 @@ sp_answr moveq    #0,d0
 
 sp_dscon 
 ;        move.l   chanid(pc),a0     ; close sck_ channel not tcp_ channel!
-         moveq    #-1,d3
-         bsr      sp_flush          ; flush output first
+;         moveq    #-1,d3
+;         bsr      sp_flush          ; flush output first
          bsr      purge_in
-dscon_cl moveq    #io.close,d0
+         cmpa.l   chanid(pc),a0     ; check current channel against chanid
+         beq.s    dscon_cl          ; (sp.wtcal has 2 channels open!)
+         moveq    #io.close,d0
          trap     #2                ; close sck_ channel, do not clear chanid
-         bsr      close_ch          ; now close tcp_ channel
+dscon_cl bsr      close_ch          ; now close tcp_ channel
          moveq    #50,d3
          bra      pause             ; wait 1 second before returning
 
@@ -331,10 +358,43 @@ sp_fbaud move.l   spdbits(pc),d1
          moveq    #0,d0
          rts
 
-; Originate call (not yet implemented)
+; Originate call
 
 sp_dials 
-sp_dial  moveq    #err.ni,d0
+sp_dial  lea      dialbuf+2(pc),a2
+         move.l   #'TCP_',(a2)+
+         move.w   (a1)+,d3
+         beq.s    spd_err
+         cmpi.w   #60,d3
+         bhi.s    spd_err
+         sf       d4                ; flag for port
+spd_copy move.b   (a1)+,d0
+         move.b   d0,(a2)+
+         cmpi.b   #':',d0
+         bne.s    spd_cnt
+         st       d4                ; signal 'port specified'
+spd_cnt  subq.w   #1,d3
+         bne      spd_copy
+         tst.b    d4
+         bne.s    spd_open
+         lea      defport(pc),a1    ; else, add default port string
+         move.w   (a1)+,d3
+         bra.s    spd_pcnt
+spd_plp  move.b   (a1)+,(a2)+
+spd_pcnt dbf      d3,spd_plp
+spd_open move.l   a2,d0
+         lea      dialbuf+2(pc),a2
+         sub.l    a2,d0             ; get length of string
+         move.w   d0,-(a2)
+         moveq    #1,d3             ; signal 'connect to this host'
+         move.w   d2,-(a7)
+         bsr      openchan
+         bsr      init_iac
+         moveq    #0,d1
+         move.l   d1,a1
+         move.w   (a7)+,d1
+         rts
+spd_err  moveq    #err.bp,d0
          rts
 
 ; I/O routines
@@ -419,8 +479,9 @@ spf_send subq.l   #4,a7             ; make room on stack for 4 chars (actually 3
          moveq    #3,d2             ; We have three bytes to send
          move.l   d3,-(a7)          ; save timeout for sp_fbyte!
          moveq    #-1,d3            ; ensure it gets sent
-         moveq    #io.sstrg,d0      ; send string
-         trap     #3
+;         moveq    #io.sstrg,d0      ; send string
+;         trap     #3
+         bsr.s    sps_out
          move.l   (a7)+,d3          ; restore original timeout
          addq.l   #4,a7             ; tidy stack
          bra      spf_clr           ; clear flag and loop back
@@ -429,16 +490,30 @@ spf_otab dc.b     T_DONT,0,T_WONT,0
 
 ; Send a byte
 
-sp_sbyte moveq    #io.sbyte,d0
-         lea      iac_stat(pc),a1
+sp_sbyte lea      iac_stat(pc),a1
          tst.b    (a1)              ; are we observing IACs?
          beq.s    spb_out           ; no
          cmpi.b   #IAC,d1           ; test for IAC char
          bne.s    spb_out
 sps_iac  lea      iac_esc(pc),a1    ; send double IAC atomic
          moveq    #2,d2
-         moveq    #io.sstrg,d0
-spb_out  trap     #3
+
+; entry point for sending strings
+
+sps_out  moveq    #0,d1             ; no flags
+         ext.l    d2                ; ensure D2.L is in range 0-32767
+;         moveq    #io.sstrg,d0
+         moveq    #ip.send,d0       ; NEW: Use ip.send rather than io.sstrg
+         trap     #3
+         rts
+
+; send byte as 1-byte packet
+
+spb_out  move.b   d1,-(a7)
+         move.l   a7,a1
+         moveq    #1,d2
+         bsr      sps_out
+         move.b   (a7)+,d1
 spb_rts  rts
 
 iac_esc  dc.b     IAC,IAC
@@ -460,18 +535,13 @@ sps_loop subq.w   #1,d0             ; decrement
          sub.w    d2,(a7)           ; subtract from initial length
          subq.w   #1,d2             ; length before IAC
          ble.s    sps_rest          ; do not print a null string
-         moveq    #io.sstrg,d0
-         trap     #3                ; send string
+;         moveq    #io.sstrg,d0
+;         trap     #3                ; send string
+         bsr.s    sps_out
 sps_rest bsr      sps_iac           ; followed by double IAC
          move.l   a2,a1             ; step past IAC
          move.w   (a7)+,d2          ; restore remaining length
          bgt.s    sps_agn           ; loop back for any remaining part
-         rts
-
-; no (more) IACs found, send (remaining) string
-
-sps_out  moveq    #io.sstrg,d0
-         trap     #3
          rts
 
 ; The following entries check for the precense of an extended SER-driver
@@ -490,25 +560,24 @@ sp_dcd
 openchan move.l   chanid(pc),a0
          move.w   a0,d0             Channel already open?
          bmi.s    opench_2          No, skip
-         move.l   d1,-(a7)
-         moveq    #-1,d3
-         bsr      sp_dump           Clear output- and input buffers
+         movem.l  d1/d3,-(a7)       save job ID and open key
+;         moveq    #-1,d3
+;         bsr      sp_dump           Clear output- and input buffers
          bsr      purge_in
-         cmpi.l   #err.ef,d0        EOF?
-         beq.s    opench_c          Yes, jump to close and re-open it
-         moveq    #0,d1
-         bsr      sp_parit          Ensure no parity
-         moveq    #1,d1
-         bsr      sp_dcd            And enable DCD detect
-         move.l   (a7)+,d1          Restore job ID
+         addq.l   #-err.nc,d0       Any other error than 'not complete'?
+         bne.s    opench_c          Yes, jump to close and re-open it
+         movem.l  (a7)+,d1/d3       Restore job ID/open key
          moveq    #0,d0             Return OK
-         bra.s    opench_r
-opench_c bsr.s    close_ch          Channel was EOF so close it
-         move.l   (a7)+,d1
+         bra      opench_r
+opench_c bsr      close_ch          Channel was EOF so close it
+         movem.l  (a7)+,d1/d3       restore job ID/open key
 opench_2 moveq    #io.open,d0
-         moveq    #0,d3
+;         moveq    #0,d3
          lea      tcpname(pc),a0
-         trap     #2                Open the channel
+         cmpi.b   #1,d3             Are we opening a channel for SP.DIAL?
+         bne.s    opench_t          no, just open with TCP_
+         lea      dialbuf(pc),a0    else, point to TCP with dial string
+opench_t trap     #2                Open the channel
          tst.l    d0
          beq.s    opench_3
          move.l   d0,-(a7)
@@ -522,11 +591,34 @@ opench_3 lea      chanid(pc),a1
          move.l   a0,(a1)           and store ID
          bsr.s    purge_in          Purge input (required for Minnie!)
          moveq    #-1,d3
-         bsr      sp_flush          This checks for extended driver
+;         bsr      sp_flush          This checks for extended driver
+
+; Now set TCP_NODELAY on the TCP channel so our XMODEM file transfers will be
+; much faster and reliable!
+
+         moveq    #4,d1             ; optlen
+         moveq    #6,d2             ; for TCP
+         lea      tcp_opt(pc),a1    ; TCP option data
+         move.w   #TCP_NODELAY,a2   ; TCP option type
+         moveq    #ip.getopt,d0
+         trap     #3
+         tst.l    d0
+         bne.s    op_so_er
+         lea      tcp_opt(pc),a1    ; point again to result
+         move.b   #1,-1(a1,d1.w)    ; set option byte
+         moveq    #ip.setopt,d0
+         trap     #3
          tst.l    d0
          beq.s    opench_r
-         lea      ext_drvr(pc),a1   ; no extended driver, reset flag
-         sf       (a1)
+op_so_er movem.l  d0/a0,-(a7)
+         suba.l   a0,a0
+         print    {'QSPILTCP: Cannot set TCP_NODELAY option: '}
+         move.l   (a7)+,d0
+         move.w   ut_err,a2
+         jsr      (a2)
+         move.l   (a7)+,a0
+;         lea      ext_drvr(pc),a1   ; no extended driver, reset flag
+;         sf       (a1)
          moveq    #0,d0
 opench_r rts
 
@@ -562,11 +654,29 @@ purge_in moveq    #0,d3
          beq      purge_in
          rts
 
+; Convert D1.W to decimal (unsigned)
+; Entry: A0 ptr to buffer
+; Exit:  A0 updated
+
+ITOD.W   MOVE.L   D1,-(A7)
+         CMPI.W   #10,D1
+         BLO.S    ITODW.S
+ITODW.1  ANDI.L   #$FFFF,D1
+         DIVU     #10,D1
+         BSR.S    ITOD.W
+         SWAP     D1
+ITODW.S  ADDI.B   #'0',D1
+         MOVE.B   D1,(A1)+
+         MOVE.L   (A7)+,D1
+         RTS
+
+
 ; Message and variables section
 
          SECTION  MSG
 
 CHANID   DC.L     -1                ; channel ID
+tcp_opt  dc.l     0                 ; buffer for TCP options
 EXT_DRVR DC.B     0                 ; indicates extended SER driver
 
 ; the following 3 bytes should be kept in order!
@@ -582,6 +692,11 @@ conf_bin dc.b     0                 ; Confirmed binary transmission option (0)
 conf_ech dc.b     0                 ; Confirmed echo option (1)
          dc.b     0                 ; gap
 conf_sup dc.b     0                 ; Confirmed Suppress Go-Ahead option (3)
+
+lis_msg  string$  {'QSPILTCP: Listening on port '}
+lis_msgp dcb.b    6,0               ; port number written here + LF
+         ds.w     0
+dialbuf  dcb.b    66,0              ; buffer for SP.DIAL
 
          END
 

@@ -1,15 +1,29 @@
 * Generic QSPIL driver for Hayes-compatible modems
 * Start of programming work: 1st July 1990
 
-* v1.00g3, October 20, 1994
+* v1.00g5, 2020 Apr 6
+* Finally fixed up broken source file!
+* Allow for '\' in modem commands as substitute for LF (for null modem use!)
+* Disabled speed keys 16 to 20 to remain compatible with existing QSETUP config
+
+* v1.00g4, 1995 Feb 10 (not released)
+* Added speed codes 19 and 20 for 57600 and 64000 bps
+* No 1 second pause after CONNECT in SP.WTCAL and SP.DIAL
+* Modems returning multiple CONNECT strings now supported
+* (e.g. "CARRIER 14400\PROTOCOL LAPM\CONNECT 19200")
+* Do not call PRLOG if A4 is null!
+
+* v1.00g3, 1994 Oct 20 (not released)
 * Made some changes to SP.CLOSE (now always sends offline cmd, unless D1=$80
 * on entry; an undocumented and yet unused feature)
+* Added speed codes 16, 17 and 18 for 31200, 33600 and 36000 bps
+* USR V.everything FAX support
 
-* v1.00g2, August 19, 1994
+* v1.00g2, 1994 Aug 19
 * Changed SENDCMD routine so that it waits for "OK" with multiple AT-commands
 * SP.DSCON now waits for "OK" or "NO CARRIER" and exits after 1 sec. delay
 
-* v1.00g1, March 25, 1994
+* v1.00g1, 1994 Mar 25
 * Extended connect- and dial baudrates
 * "Connect Fax" string now returns -2 from SP.WTCAL and SP.DIAL
 * When "ARQ" string found after connect, result code is ORed with 256.
@@ -18,17 +32,17 @@
 * Changed configured command- and response strings to null-terminated
 * Echoed modem commands are now ignored
 
-* v0.99d, November 26,1990
+* v0.99d, 1990 Nov 26
 * Added 2 * 0.5s delay in SP.INIT
 
-* v0.99c, August 7, 1990
+* v0.99c, 1990 Aug 7
 * CONNECT subroutine now correctly sets baudrate
 * SP_CLOSE no longer waits for modem response when offline command is null
 
-* v0.99b, August 4, 1990
+* v0.99b, 1990 Aug 4
 * Initial beta release
 
-version  SETSTR   1.00g3
+version  SETSTR   1.00g5
 
 * Macro for calling QBOX's PRLOG routine
 
@@ -123,7 +137,7 @@ CON_2400 EQU      3                 Connection at 2400 bps
 CON_4800 EQU      4                               4800 ...
 CON_9600 EQU      5                               ... and so on
 CON_19K2 EQU      6
-CON_38K4 EQU      7
+CON_38K4 EQU      7                 Maximum key value for QSPIL Rev. 0 spec
 CON_7200 EQU      8
 CON_12K  EQU      9
 CON_14K4 EQU      10
@@ -131,14 +145,14 @@ CON_16K8 EQU      11
 CON_21K6 EQU      12
 CON_24K  EQU      13
 CON_26K4 EQU      14
-CON_28K8 EQU      15
-CON_31K2 EQU      16
-CON_33K6 EQU      17
+CON_28K8 EQU      15                Maximum key value for QSPIL Rev. 1 spec
+CON_31K2 EQU      16                these key values were added in 1.00g3
+CON_33K6 EQU      17                ... but are not part of the Rev. 1 spec!
 CON_36K  EQU      18
-CON_57K6 EQU      19
-CON_64K  EQU      20
+CON_57K6 EQU      19                these key values were added in 1.00g4
+CON_64K  EQU      20                ... but are not part of the Rev. 1 spec!
 
-CON_MAX  EQU      20
+CON_MAX  EQU      15                For now, only use these key codes!
 
 CON_ARQ  EQU      $100              ORed with connect code when MNP/V42
 
@@ -149,19 +163,25 @@ CON_FAX  EQU      -2                Fax connect
 
          JMP      START(PC)
          DC.L     QSPIL_ID
-SIGNON   STRING$  {'QSPHAYES v[version]  Copyright (C) 1990-95 by Jan Bredenbeek'}
+SIGNON   STRING$  {'QSPHAYES v[version]  Copyright (C) 1990-2020 by Jan Bredenbeek'}
          DCB.B    64-(*-SIGNON),0
 
 * Configuration data
 
-CFGVER   DC.W     201
-BAUD     DC.W     2400
-FAXBAUD  DC.W     19200
+* 20200406 JB:
+* For the moment, to remain compatible with current QSETUP, the extra baud
+* rates and fax options have been commented out. They are not of very much
+* use now in 2020. (a better solution would be to use CON_UNKN as return code
+* and pass the real baud rate DIV 100, say, in the high word of D1)
+
+CFGVER   DC.W     200
+BAUD     DC.W     19200
+
 LOCKED   DC.W     0
 DELAY    DC.W     1
 TIMEOUT  DC.W     70*50
 ANSWER   DC.W     1
-FAXCARR  DC.W     1
+
 PORT     STRING$  'SER2H'
          DS.B     32-(*-PORT)
 OKMSG    DC.B     'OK'
@@ -208,16 +228,16 @@ CONN26K4 DC.B     'CONNECT 26400'
          DCB.B    32-(*-CONN26K4),0
 CONN28K8 DC.B     'CONNECT 28800'
          DCB.B    32-(*-CONN28K8),0
-CONN31K2 DC.B     'CONNECT 31200'
-         DCB.B    32-(*-CONN31K2),0
-CONN33K6 DC.B     'CONNECT 33600'
-         DCB.B    32-(*-CONN33K6),0
-CONN36K  DC.B     'CONNECT 36000'
-         DCB.B    32-(*-CONN36K),0
-CONN57K6 DC.B     'CONNECT 57600'
-         DCB.B    32-(*-CONN57K6),0
-CONN64K  DC.B     'CONNECT 64000'
-         DCB.B    32-(*-CONN64K),0
+;CONN31K2 DC.B     'CONNECT 31200'
+;         DCB.B    32-(*-CONN31K2),0
+;CONN33K6 DC.B     'CONNECT 33600'
+;         DCB.B    32-(*-CONN33K6),0
+;CONN36K  DC.B     'CONNECT 36000'
+;         DCB.B    32-(*-CONN36K),0
+;CONN57K6 DC.B     'CONNECT 57600'
+;         DCB.B    32-(*-CONN57K6),0
+;CONN64K  DC.B     'CONNECT 64000'
+;         DCB.B    32-(*-CONN64K),0
 CONN_FAX DC.B     'CONNECT FAX'
          DCB.B    32-(*-CONN_FAX),0
 CONN_ARQ DC.B     '/ARQ'
@@ -230,8 +250,7 @@ INIT3    DC.B     ''
          DCB.B    50-(*-INIT3),0
 ASWCMD   DC.B     'ATA|'
          DCB.B    50-(*-ASWCMD),0
-FAXASW   DC.B     ''
-         DCB.B    50-(*-FAXASW),0
+
 HANGUP   DC.B     '~~~+++~~~ATH0|'
          DCB.B    50-(*-HANGUP),0
 OFFLINE  DC.B     'ATM0H1|'
@@ -272,8 +291,15 @@ DPREFIX  DC.B     'DT'
          DCB.B    50-(*-DPREFIX),0
 DSUFFIX  DC.B     '|'
          DCB.B    50-(*-DSUFFIX),0
-USRDATA  DC.B     'DATA',0
-USRCONN  DC.B     'ATO|',0
+
+* Extra fax options
+
+FAXASW   DC.B     ''                Fax answer command
+         DCB.B    50-(*-FAXASW),0
+FAXBAUD  DC.W     19200             Baud rate to use for FAX connects
+FAXCARR  DC.W     1                 SP.DCD option to set on FAX connect (odd!)
+USRDATA  DC.B     'DATA',0          Match string and command to send for USR
+USRCONN  DC.B     'ATO|',0          V.Everything fax class 1 modems
 
 START    CMPI.W   #SP.MAXOP,D0      Valid function call?
          BHI.S    ERR_NI            Jump if not implemented yet
@@ -383,13 +409,16 @@ WTCAL_CO BSR      CONNECT           Got a CONNECT?
          BSR      MODEMLOG          Else, report it
          SUBA.L   A1,A1
          BRA      WTCAL_A1          and loop back
-WTCAL_OK MOVEQ    #0,D0
-         BRA.S    WTCAL_RT
 WTCAL_C  LEA      FAXASW(PC),A1     No Class 1 answer command?
          TST.B    (A1)
          BEQ.S    WTCAL_ER          Yes, return error
          BSR      SENDCMD           Else, send fax answer cmd
          BRA      WTCAL_A1          and loop back for result
+WTCAL_OK MOVEQ    #0,D0             OK return
+WTCAL_RT RTS
+WTCAL_ER BSR      MODEMLOG
+         MOVEQ    #ERR.EF,D0        Failed to connect
+         RTS
 
 * Disconnect line
 
@@ -695,28 +724,34 @@ INIT_NXT ADDA.W   #50,A3
 * Send modem command (A1)
 
 SENDCMD  MOVEM.L  A2-A4,-(A7)
-         MOVE.L   A1,A2
+         MOVE.L   A1,A2         
 SC_LOOP  MOVE.B   (A1)+,D1          Get next char
          BEQ.S    SC_END
          CMPI.B   #'|',D1           Replace pipe char with CR
          BNE.S    SC_NOPIP
          MOVEQ    #CR,D1
-SC_NOPIP CMPI.B   #'~',D1
+         BRA.S    SC_SEND
+SC_NOPIP CMPI.B   #'\',D1           Replace backslash with LF
+         BEQ.S    SC_LF
+         CMPI.B   #'~',D1
          BNE.S    SC_SEND
          MOVEQ    #25,D3            and tilde char with .5 secs pause
          BRA.S    SC_PAUSE
-SC_SEND  MOVE.L   A1,-(A7)
+SC_LF    MOVEQ    #LF,D1
+SC_SEND  MOVEM.L  D1/A1,-(A7)
          MOVEQ    #IO.SBYTE,D0
          MOVEQ    #-1,D3
          TRAP     #3
-         MOVE.L   (A7)+,A1
+         MOVEM.L  (A7)+,D1/A1
          MOVE.W   DELAY(PC),D3      Wait for modem delay, unless 0
          BEQ.S    SC_PIPE
 SC_PAUSE BSR      PAUSE
-SC_PIPE  CMPI.B   #'|',-1(A1)       Have we sent a CR?
-         BNE      SC_LOOP           no
+SC_PIPE  CMPI.B   #$20,D1           Have we sent a CR or LF?
+         BCC      SC_LOOP           no
          TST.B    (A1)              At end of command?
-         BEQ.S    SC_END            yes
+         BEQ.S    SC_END            yes, exit
+         CMPI.B   #'\',(A1)         check for CR/LF first
+         BEQ      SC_LOOP
          EXG      A1,A2             we have a split commmand string
          MOVE.L   A2,-(A7)          so wait for "OK"
          MOVE.W   #5*50,D3
@@ -781,7 +816,7 @@ CON_LOOP BSR      CMPRESLT          Jump if match found
          CMPI.W   #CON_MAX,D1
          BLS      CON_LOOP          Loop back
          LEA      CONN_FAX(PC),A2
-         BSR.S    CMPRESLT          Finally, try CONNECT FAX
+         BSR      CMPRESLT          Finally, try CONNECT FAX
          BNE.S    CON_NC
          MOVE.W   FAXBAUD(PC),D1
          BEQ.S    CON_FCO
@@ -813,7 +848,7 @@ CON_ARQT CLR.B    (A2)
          BEQ.S    CON_END           Exit immediately with FAX connects
          MOVE.L   D1,-(A7)          Save connect code
          LEA      CONN_ARQ(PC),A2
-         BSR.S    INSTR             Check for "/ARQ" etc., set ARQ bit in
+         BSR      INSTR             Check for "/ARQ" etc., set ARQ bit in
          BNE.S    CON_MORE          connect code if found
          ORI.W    #CON_ARQ,2(A7)
 
@@ -827,7 +862,7 @@ CON_MORE MOVEQ    #50,D3            Timeout 1 second
          BNE.S    CON_END1          Done if no more
          LEA      RESBUF(PC),A1
          LEA      CONN_ARQ(PC),A2
-         BSR.S    INSTR             Scan for ARQ sequence
+         BSR      INSTR             Scan for ARQ sequence
          BNE.S    CON_REPT
          ORI.W    #CON_ARQ,2(A7)    Set ARQ bit if found
 CON_REPT BSR      MODEMLOG          Print string to log channel
@@ -957,7 +992,7 @@ REPORT   DC.B     'Modem reports "'
 REP_END  EQU      *
          DC.W     0
 RESBUF   DCB.B    50,0
-         DC.B     LF
+;         DC.B     LF               Why? Caused address exception!
 EXTRABUF DCB.B    50,0
 
          END

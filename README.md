@@ -2,7 +2,7 @@
 
 ## Description
 
-A Bulletin Board System for the Sinclair QL, originally written in 1987-94 for analogue modems. But thanks to its **QSPIL** interface, it can be made to work with TCP/IP too! You just need an emulator supporting the TCP device. QBOX has been tested successfully with [QPC2](https://www.kilgus.net/qpc/), [SMSQmulator](http://www.wlenerz.com/SMSQmulator/), [uqlx](http://www.dilwyn.me.uk/emu/index.html#uQLx_for_Linux_etc.), and [Qemulator](http://www.terdina.net/ql/q-emulator.html).
+A Bulletin Board System for the Sinclair QL, originally written in 1987-94 for analogue modems. But thanks to its **QSPIL** interface, it can be made to work with TCP/IP too! You just need an emulator supporting the TCP device. QBOX has been tested successfully with [QPC2](https://www.kilgus.net/qpc/), [SMSQmulator](http://www.wlenerz.com/SMSQmulator/), [uqlx](http://www.dilwyn.me.uk/emu/index.html#uQLx_for_Linux_etc.), and [Q-emulator](http://www.terdina.net/ql/q-emulator.html).
 
 ## Installation
 
@@ -28,7 +28,7 @@ Now that analogue modems are obsoleted by IP networks and popular QL emulators s
 
 * Note that UQLX releases earlier than 2018-10-28 have a bug in the TCP driver (it was incorrectly named \*tcp), causing QSPILTCP to fail. The corrected release can be downloaded [here](http://www.dilwyn.me.uk/emu/uqlx2018a.zip).
 
-* For Qemulator, you need at least version 3.3.1 to run QBOX over TCP/IP successfully.
+* For Q-emulator, you need at least version 3.3.1 to run QBOX over TCP/IP successfully.
 
 When an incoming connection has been established, QSPILTCP monitors the first bytes of the incoming data stream for Telnet IAC characters ($FF). If detected, it will send the Telnet options Binary Transmission (WILL/DO), Echo (WILL), and Suppress Go-Ahead (WILL/DO) to initialise the client. This may be changed by editing the teln_opt string. It will also respect the IAC character during send and receive, meaning that a $FF character in the actual data will be escaped by doubling it in the data stream. This will allow file up- and download to work correctly over Telnet sessions when using programs such as TeraTerm or a TCP-to-serial converter such as TCPSER.
 

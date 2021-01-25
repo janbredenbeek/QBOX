@@ -1,0 +1,154 @@
+Notes for TossMail 1.19c, released 4th January 1992
+===================================================
+
+- Fixed major bug in ARCmail unpacking routine. V1.19b failed badly when an
+  error occurred when de-archiving the bundle. In particular, it went into an
+  endless loop! This has now been fixed; when an error occurs during
+  de-archiving TOSSMAIL now deletes the unpacked .PKT files and continues with
+  the next bundle.
+
+- Cleaned up the code dealing with inbound directory scanning. There have been
+  reports about 1.19b sometimes leaving .PKTs to be tossed when finished. I
+  have never been able to duplicate this but hopefully this problem is gone
+  now.
+  One of the consequences of this change is that .PKTs from ARCmail bundles are
+  no longer unpacked into the inbound directory itself, but in the system
+  directory. You should therefore ensure that there is enough disk space left
+  on the device containing this directory.
+
+- TOSSMAIL now also supports ZOO, LHArc and ARJ bundles! You have to have the
+  QL versions of the de-archiver programs of these formats though as TOSSMAIL
+  calls external de-archivers to unpack ARCmail bundles, as with ARC and ZIP.
+  The filename and commandline options of the de-archivers are specified using
+  the "-UNZOO=", "-UNLZH=" and "-UNARJ=" commands in ECHOCTL_BBS; see the
+  explanation of the "-UNARC=" and "-UNZIP=" commands further in this file.
+  Please note that it must be possible to run the de-archiver program
+  unattended using a commandline, and that the commandline must be of the form
+  "[options] <archive file> <destination directory>".
+
+- Fixed bug that sometimes caused one byte too little heap memory to be
+  allocated for an area definition, usually causing many problems!
+
+- The "origination address" of tossed EchoMail messages is now set to the
+  address of the system which actually DELIVERED the message, rather than that
+  of the system from which the message originated. So if you need to know the
+  latter address from an EchoMail message, you have to scan the Origin line or
+  MSGID to get it. This change has been made to allow fully Zone- and
+  Point-aware EchoMail with future versions of SCANMAIL.
+  If TOSSMAIL can recognise the zone- and point number from the inbound packet
+  (FSC-0039), it places them in the origination address.
+  Tossed NetMail messages have their "true" origination address set as usual.
+  Note that the Zone number is only set if the message contains an INTL- or
+  MSGID kludge, otherwise it is set to zero.
+  
+  
+Notes for TossMail 1.19b, released 17th April 1991
+==================================================
+
+Changes and enhancements from version 0.03
+------------------------------------------
+
+- TossMail can now toss multiple packets and unpack ARCmail bundles in ARCed or
+  ZIPped form. The latter is done by calling external programs to de-archive
+  the ARCmail bundles.
+
+- TossMail now fully supports the 256 message areas offered by QBOX 1.19 and
+  above.
+
+- TossMail now has its own screen window which allows you to monitor its
+  operation. Screen output of de-archiving programs is also redirected to this
+  window.
+
+- Very large packets (too big for memory) are now tossed without problems.
+
+- TossMail no longer chokes on large messages. It can unpack messages up to
+  32Kbytes. Larger messages are truncated to 32K and placed into the BADECHO
+  area.
+
+- TossMail now recognises the kludges FMPT, TOPT, INTL and MSGID. The
+  origination- and destination Zone- and Point fields in the message header are
+  now set accordingly if these kludges are present. FMPT, TOPT and INTL are
+  then removed from the message text body.
+
+- Null messages (e.g. used by file attaches) are now deleted except when the
+  option -KEEPNULL has been given on the commandline
+
+- The "In Transit" message attribute bit is now correctly set when a netmail
+  message is tossed which is not addressed to your main address or any of your 
+  AKA addresses.
+
+- When an in-transit netmail message is tossed which has the file-attach
+  attribute bit set, TossMail will add the inbound directory name to all file
+  names on the subject line. This allows for forwarding of attached files, in
+  conjunction with a netmail packer which supports this.
+
+- The TOSSLOG_BBS file created by v0.03 and earlier has been renamed
+  IMPORT_LOG. As usual the file will be created in the system directory (no
+  alternative file name specification is possible); generation of this file can
+  be turned off with the -NOLOG option on the command line. The contents of the
+  file are as before, except that the Net/Node specification is missing
+  (because multiple packets from different systems can be unpacked in one run).
+  
+- The "Totsz" specification in IMPORT_LOG (formerly known as TOSSLOG_BBS) no
+  longer overflows when more than 64K has been tossed.
+
+
+Installing the new version
+--------------------------
+
+The packet file name is no longer specified on the TossMail command line, but
+taken from the -INBOUND= command in ECHOCTL_BBS. Hence, only the QBOX system
+directory must be specified on the commandline. If no directory is given on the
+commandline, TossMail uses the Program default directory (set by the Toolkit II
+command PROG_USE) as QBOX system directory.
+
+The following new commands must be added to ECHOCTL_BBS, before the echo areas
+definition but after the first three lines. All commands start with a "-" sign;
+no spaces are allowed in commands.
+
+
+COMMAND: -INBOUND=<inbound directory>
+-------------------------------------
+
+This specifies the directory where TossMail should look for packet files and
+ARCmail bundles.
+
+Example:  -INBOUND=win1_QBOX_IN_
+
+
+COMMAND: -NETMAIL=<netmail area number>
+---------------------------------------
+
+This specifies the QBOX area number of the Network Mail area. This command is
+compulsory.
+
+Example:  -NETMAIL=4
+
+
+COMMAND: -BADECHO=<badecho area number>
+---------------------------------------
+
+This specifies the area where TossMail should dump messages with unknown area
+tag. If you leave this command out, these messages will not be tossed and thus
+killed.
+
+Example:  -BADECHO=255
+
+
+COMMAND: -UNARC=<unarc program name> / -UNZIP=<unzip program name>
+------------------------------------------------------------------
+
+These commands specify the file name of the programs to de-archive ARCed and
+ZIPped mail bundles respectively, and the commandline options when these 
+programs are called. I recommend you to use my QLUNARC and QLUNZIP programs. 
+These are fast and compact and can be used unattended.
+The items on the commandline of the called program will be the options you have
+specified in the UNARC/UNZIP command after the program name, followed by the 
+full QDOS file name of the ARCmail bundle, followed by the name of the inbound 
+directory.
+
+Examples:  -UNARC=flp1_UNARC -o
+           -UNZIP=flp1_UNZIP -o
+
+
+                           - END OF FILE -

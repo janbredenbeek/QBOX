@@ -1,0 +1,113 @@
+List of changes for version 1.19j, released 25th March 1994:
+------------------------------------------------------------
+
+- Extended the number of QSPIL baudrates supported to allow for sixteen
+  possible rates, as described in the new QSPHAYES documentation.
+  The new rates supported are 7200, 12000, 14400, 16800, 19200, 21600,
+  24000, 26400, 28800 and 38400 bps.
+
+
+List of changes for version 1.19i, released 26th March 1993:
+------------------------------------------------------------
+
+- Fixed some obscure bugs in the SEAlink sender code, which could cause
+  SEAlink transmit sessions to fail badly with certain mailers.
+
+- The "product version numbers" in the .PKT header are now correctly set.
+
+- The last block of a sent file is now padded with CTRL-Z's to avoid "junk"
+  being added to the file when using XMODEM.
+
+- Not a bugfix, but please note that my FidoNet address has changed from
+  2:283/500 to 2:283/1!
+
+   
+List of changes for version 1.19h, released 25th December 1992:
+---------------------------------------------------------------
+
+- When initiating a plain XMODEM receive, a file length of 65535 was reported.
+  Fixed now.
+
+- When receiving, SEAlink Overdrive is now only requested when the inbound 
+  device is a RAMdisk. This prevents flow control problems which showed up when 
+  receiving using SLO.
+
+- When the receiver switched back to Checksum mode, the SENDNAK routine still
+  polled the other end with a C rather than NAK. Fixed now.
+
+  
+List of changes for version 1.19g, released 12th April 1992:
+------------------------------------------------------------
+
+- Once again made some changes to SEAlink error recovery (comments please,
+  Marco!)
+
+
+List of changes for version 1.19f, released 5th April 1992:
+-----------------------------------------------------------
+
+- Improved SEAlink error recovery logic; hopefully it works now...
+
+
+List of changes for version 1.19e, released 16th February 1992:
+---------------------------------------------------------------
+
+- When resuming an interrupted transfer using SEAlink RESYNC, the file date was
+  changed after the transfer, so further RESYNCs on the same file were
+  impossible (at least on V2 drivers). Fixed now.
+
+- Minor fix: a NAK is now sent when an out-of-sync block has been received.
+  Previous versions caused a timeout to occur if this happened.
+
+- SEAlink Overdrive (i.e. "ackless" SEAlink, used on MNP-connections) didn't
+  acknowledge EOF. Was already fixed in 1.19d, but I forgot to include it in
+  the list...
+  
+
+List of changes for version 1.19d, released 11th January 1992:
+--------------------------------------------------------------
+
+- Introduced some delay when starting up a session. This will hopefully
+  eliminate "fall-through" to the BBS which was reported on earlier versions.
+
+- Many users of Miracle Systems harddisks reported problems, mainly caused by
+  the delayed directory update when a new file is created. The SEAlink code now
+  incorporates a kludge which hopefully eliminates this; I'm unable to test it
+  myself since I don't have a harddisk anymore...
+
+- The SEAlink receive buffer is now also written out if the receive session
+  fails for some reason.
+
+- The time stamp stored at offset 10 in the file header, which was removed in
+  1.19b, is now back again. The actual problem was that I forgot to clear the
+  other header fields before writing out the header...
+
+  
+List of changes for version 1.19c, released 27th December 1991:
+---------------------------------------------------------------
+
+- Fixed MACFLOW problems which occurred occasionally at end of file;
+- Inbound files now don't have junk appended at their end when using Telink or
+  SEAlink and the inbound is on RAMdisk.
+
+
+List of changes for version 1.19b, released 26th December 1991:
+---------------------------------------------------------------
+
+- MAIL used a 32K buffer in SEAlink receive when using a winchester disk for
+  inbound. Unfortunately, flushing of the entire 32K buffer to disk failed
+  because IO.SSTRG fails when the "length" parameter exceeds 32767! The buffer
+  size when using win_ has now been reduced by 128 bytes so it will hopefully
+  work OK now.
+
+- The time stamp stored at offset 10 decimal in the file header on non-V2
+  drivers caused major problems with TOSSMAIL v1.19b, which treated it as an
+  offset in the packet file to resume tossing from after an interrupted toss!
+  This feature has now temporarily been disabled until a new version of
+  TOSSMAIL comes out.
+
+List of changes for version 1.19a, releaased 24th December 1991:
+----------------------------------------------------------------
+
+- First new release since v1.04.
+  

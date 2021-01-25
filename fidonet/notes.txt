@@ -1,0 +1,117 @@
+                             Notes for MAIL 1.19b
+                             --------------------
+
+Well here it is, after two years of waiting a new version of MAIL, formerly
+known as POLL, has been released. The reason why it took so long is that the
+XMODEM/Telink session routines have been completely rewritten from scratch two
+times! The main improvement is the addition of SEAlink, an XMODEM-compatible
+streaming protocol which offers better file transfer performance, including
+automatic resume of an interrupted transfer. But improvements have been made in
+other areas as well, such as true 4-dimensional point support using the
+FSC-0039 packet proposal.
+
+Please also read the new manual, since this has been changed significantly
+since the last version.
+
+Unfortunately, I am unable to release a new version of TempFront as of yet.
+TempFront has been discontinued and will be incorporated in the next version of
+QBOX as an integrated mail front-end for the BBS. The SEAlink protocol will be
+incorporated in QBOX as well in both the mail front-end and the BBS, so you
+as a sysop will finally be able to offer your users a decent protocol.
+
+Well, that's it for now, here below follows the list of changes.
+
+
+- Complete rewrite of XMODEM/Telink file transfer routines. MAIL now supports
+  SEAlink file transfer as well as XMODEM/Telink.
+  SEAlink (invented by System Enhancement Associates Inc., USA) improves
+  performance of XMODEM file transfers by sending ahead blocks which have not
+  yet been acknowledged by the receiver. To allow this, the receiver extends
+  its ACK/NAK responses with the block number of the last received block. Since
+  the sender doesn't have to wait for each block to be acknowledged, file
+  transfer efficiency can be improved by 20% or even more, especially when
+  there are significant delays in the transmission channel (long distance phone
+  lines or buffered modems with MNP error correction). SEAlink is completely
+  backwards compatible with XMODEM and will fall back to it if it detects that
+  the remote end does not support it.
+  The SEAlink implementation of MAIL also supports RESYNC, an extension which
+  allows an interrupted file transfer to be resumed at the point where it
+  previously went wrong. No more annoyance and wasted time and money caused by
+  a large XMODEM file transfer failing just before the end so you had to start
+  over again from the beginning! The remote mailer has to support the RESYNC
+  extension too for it to work though. However most modern SEAlink
+  implementations which have been written according to the FTS-0007
+  specification do.
+
+- Full 4-dimensional address support has been implemented using the FSC-0039
+  packet header proposal. IMPORTANT: Not all FidoNet technology mailers
+  recognise the extended zone and point fields in the FSC-0039 packet and still
+  treat the address as 2D (i.e. they assume the zone as being their own zone
+  and the point as being zero). If you use MAIL as a point, you should ONLY use
+  4D addressing if you are sure that the other end does actually support it
+  using FSC-0039. Otherwise, use "pointnet" addressing (i.e. pointnet/point.0).
+  At this time of writing, among the most popular mailers for MS-DOS, only
+  FrontDoor version 2.00 and higher supports FSC-0039. BinkleyTerm does not.
+  TempFront up to and including 1.04 also doesn't support FSC-0039, but the new
+  version built into QBOX will do.
+  Mailing a non-FSC-0039 mailer using 4D-addressing can be dangerous as you can
+  pick up mail which is actually destined for your boss node! Future versions
+  of MAIL will implement the YooHoo (FTS-0006) address handshake which has
+  significantly wider support and does not only pass the 4-dimensional address
+  but also the system's name, sysop name and session password to the remote
+  system as well.
+
+- Session passwording has been implemented, again using FSC-0039. The same
+  restrictions as with 4D-addressing mentioned above apply to this feature.
+  Read the documentation for more details as how to pass the password to the
+  remote system.
+
+- MAIL allows a retry count to be set for both calling attempts and handshake
+  attempts. It will keep calling the remote system until either the mail
+  session completes successfully, one of the retry limits is exceeded or the
+  calling process is aborted manually. The retry limits and delay between calls
+  are taken from the standard configuration but can be overridden by specifying
+  them on the command line (see manual).
+
+- The dreaded "NETMAIL_PKT" has been fixed. MAIL will generate ".PKT" files
+  with random names instead.
+
+- When a duplicate-named file is received, MAIL will rename it by appending a
+  digit after the name. E.g. when you receive a file "ALLFILES.ZIP" and there
+  is already such a file in your inbound, the new file will have the name
+  "ALLFILES.ZIP0" instead. A subsequent duplicate-named file would be named
+  "ALLFILES.ZIP1" and so on.
+  This only applies when the time-stamps of the local and remote file are
+  different. If they are the same, then MAIL assumes that the local file is an
+  incomplete copy of the remote due to a previous interrupted session and
+  either resumes the SEAlink transfer from where it left off or overwrites the
+  local file if the file transfer protocol is not SEAlink or the remote end
+  does not support SEAlink RESYNC.
+
+- On V2 device drivers, the time stamp of received files is now set to the
+  original file date and time as passed by the SEAlink or Telink header block.
+  If the device driver does not support the IOF.DATE call, MAIL will keep the
+  time stamp at location 10 in the file header. This allows SEAlink RESYNC to
+  still work correctly.
+
+- Improved session progress monitoring. MAIL can update the QBOX log file and
+  display progress on screen simultaneously. It also opens its own window if no
+  channel parameter is given when executed. If a channel is given, it will use
+  that for session progress monitoring as before.
+  Note that if you use the same log file for MAIL and QBOX, you cannot have
+  both programs running at the same time as QDOS does not allow two programs
+  writing to the same file.
+
+- A short help screen now appears when no parameters are given on the command
+  line.
+
+- A different origin address can now be specified by using "A=<address>" on the
+  command line.
+
+- If a _PKT file already exists for the destination system, MAIL will overwrite
+  its packet header contents (not the messages within it).
+
+- The built-in message packer (using _MSG files) has been removed. There is no
+  more need for it since there are now external netmail packers available (e.g.
+  Erik Slagter's QSCAN).
+

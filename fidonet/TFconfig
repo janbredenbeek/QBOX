@@ -1,0 +1,36 @@
+100 REMark TempFront configuration utility
+105 REMark This takes the "raw" TempFront file and adds the QSPIL code to it
+107 REMark this new "QSPIL driver" then replaces the old driver.
+110 CLS:PRINT "*** TempFront CONFIGURATION ***":PRINT
+120 INPUT "Name of device containing TempFront_RAW: ";dev$
+130 INPUT\"Name of QBOX SYSTEM directory: ";dest$
+140 PRINT\"Name of QSPIL driver: ";dest$;:INPUT qspil$
+150 PRINT\"Loading files..."
+160 tfsiz=FLEN(\dev$&"TempFront_RAW"):totsiz=tfsiz+FLEN(\dest$&qspil$)
+170 buffer=ALCHP(totsiz)
+180 LBYTES dev$&"TempFront_RAW",buffer:LBYTES dest$&qspil$,buffer+tfsiz
+190 SBYTES dest$&"TempFront",buffer,totsiz:RECHP buffer
+200 OPEN#3,dest$&"TempFront"
+210 GET#3\4;zone%,net%,node%,sysdir$
+220 GET#3\60;inbd_dir$:GET#3\110;outbd_dir$
+230 CLS:PRINT "Current Values:":PRINT
+240 PRINT "FidoNet Zone      : ";zone%
+250 PRINT "FidoNet Net       : ";net%
+260 PRINT "FidoNet Node      : ";node%
+270 PRINT "System Directory  : ";sysdir$
+280 PRINT "Inbound Directory : ";inbd_dir$
+290 PRINT "Outbound Directory: ";outbd_dir$
+300 PRINT\"Press ENTER to keep old value"
+310 INPUT\"FidoNet Zone      : ";a$:IF a$<>"":zone%=a$
+320 INPUT "FidoNet Net       : ";a$:IF a$<>"":net%=a$
+330 INPUT "FidoNet Node      : ";a$:IF a$<>"":node%=a$
+340 INPUT "System Directory  : ";a$:IF a$<>"":sysdir$=a$
+350 INPUT "Inbound Directory : ";a$:IF a$<>"":inbd_dir$=a$
+360 INPUT "Outbound Directory: ";a$:IF a$<>"":outbd_dir$=a$
+370 PRINT\"Writing new values..."
+380 PUT#3\4;zone%,net%,node%,sysdir$
+390 PUT#3\60;inbd_dir$:PUT#3\110;outbd_dir$
+400 CLOSE#3
+410 PRINT\"TempFront Configuration Finished."
+420 PRINT "Re-configure QBOX to use TempFront as QSPIL-driver"
+430 STOP
